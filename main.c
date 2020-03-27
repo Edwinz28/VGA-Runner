@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 volatile int pixel_buffer_start; // global variable
 
@@ -12,11 +13,6 @@ const int VGA_Y_MAX = 239;
 //Background boundaries  ===============================================================================
 const int GROUND_Y_START = 200;
 
-//Player attributes  ===============================================================================
-const int PLAYER_SIZE = 15;
-const int PLAYER_START_X = 125;
-const int PLAYER_START_Y = 185;
-
 //colors ========= Very temporary for now  ===============================================================================
 const short int GROUND_COLOR = 0x07E0;
 const short int BACKGROUND_COLOR = 0x001F;
@@ -26,60 +22,91 @@ const short int PLAYER_BODY_COLOR = 0xF800;
 void clear_screen();
 void wait_for_vsync();
 void plot_pixel(int x, int y, short int line_color);
-void draw_player(int x, int y);
-bool on_ground(int y);
+void draw_player(int x, int y, int size);
+bool on_ground(int y, int size);
+void jump(int *y);
+
+//Player struct
+struct Player{
+    int x;
+    int y;
+    int size;
+    int y_dir;
+    bool is_grounded;
+};
 
 int main(void)
 {
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
-    // declare other variables(not shown)
-    // initialize location and direction of rectangles(not shown)
+    volatile int * key_ptr = (int *)0xFF200050;                                                 //might need to use interrupts instead of key registers
+   
+   
+   //Player attributes  ===============================================================================
+    const int PLAYER_SIZE = 15;
+    const int PLAYER_START_X = 125;
+    const int PLAYER_START_Y = 185;
 
-    /* set front pixel buffer to start of FPGA On-chip memory */
-    *(pixel_ctrl_ptr + 1) = 0xC8000000; // first store the address in the 
-                                        // back buffer
-    /* now, swap the front/back buffers, to set the front buffer location */
+    *(pixel_ctrl_ptr + 1) = 0xC8000000;                                      
     wait_for_vsync();
-    /* initialize a pointer to the pixel buffer, used by drawing functions */
     pixel_buffer_start = *pixel_ctrl_ptr;
-    clear_screen(); // pixel_buffer_start points to the pixel buffer
+    clear_screen(); 
     
-    /* set back pixel buffer to start of SDRAM memory */
-
     *(pixel_ctrl_ptr + 1) = 0xC0000000;
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
     
 
-    //Stores player position
-    int player_x = PLAYER_START_X;
-    int player_y = PLAYER_START_Y;
-
-    //Stores player directions
-    int move_x = 0;
-    int move_y = 0;
+    //initialize player
+    struct Player player;
+    player.x = PLAYER_START_X;
+    player.y = PLAYER_START_Y;
+    player.y_dir = 0;
+    player.size = PLAYER_SIZE;
+    player.is_grounded = true;
 
 
     while(1)
     {
         clear_screen();
 
-        draw_player(player_x, player_y);
+        draw_player(player.x, player.y, player.size);
+        player.is_grounded = on_ground(player.y, player.size);
 
+        if((*key_ptr & 0x01) && player.is_grounded)
+        {
+            printf("Jumping! \n");
+            jump(&player.y);
 
+            //updates player status
+            player.y_dir = 10;
+            player.is_grounded = false;
+        }
 
-        wait_for_vsync(); // swap front and back buffers on VGA vertical sync
-        pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+        //reset gravity
+        if(player.is_grounded && player.y_dir != 0)
+        {
+            player.y_dir = 0;
+        }
+        
+        player.y += player.y_dir;
+
+        wait_for_vsync();
+        pixel_buffer_start = *(pixel_ctrl_ptr + 1); 
     }
 
 }
 
+//Allows the player to jump
+void jump(int * y)
+{
+    *y -= 50;
+}
 //Draws player
-void draw_player(int x, int y)
+void draw_player(int x, int y, int size)
 {
     //draws a square for now needs to be updated to draw an actual player
-    for (int i = x; i < x + PLAYER_SIZE; i++)
+    for (int i = x; i < x + size; i++)
     {
-        for(int j = y; j < y + PLAYER_SIZE; j++)
+        for(int j = y; j < y + size; j++)
         {
             plot_pixel(i, j, PLAYER_BODY_COLOR);
         }
@@ -110,9 +137,9 @@ void clear_screen()
 
 //==================================================================== Finalized code ========================================
 //Checks if player is on ground
-bool on_ground(int y)
+bool on_ground(int y, int size)
 {
-    if(y + PLAYER_SIZE >= GROUND_Y_START)
+    if(y + size >= GROUND_Y_START)
     {
         return true;
     }
