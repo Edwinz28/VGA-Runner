@@ -17,6 +17,7 @@ const int GROUND_Y_START = 200;
 const short int GROUND_COLOR = 0x07E0;
 const short int BACKGROUND_COLOR = 0x001F;
 const short int PLAYER_BODY_COLOR = 0xF800;
+const short int OBSTACLE_COLOR = 0xF81F;
 
 //Function prototypes:  ===============================================================================
 void clear_screen();
@@ -34,6 +35,13 @@ struct Player{
     int y_dir;
     bool is_grounded;
 };
+
+//obstacle struct
+struct obstacle{
+    int x;
+    int x_speed;
+    int size;
+}
 
 int main(void)
 {
@@ -63,7 +71,7 @@ int main(void)
     player.size = PLAYER_SIZE;
     player.is_grounded = true;
 
-
+    //Main game loop
     while(1)
     {
         clear_screen();
