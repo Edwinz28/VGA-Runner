@@ -19,13 +19,6 @@ const short int BACKGROUND_COLOR = 0x001F;
 const short int PLAYER_BODY_COLOR = 0xF800;
 const short int OBSTACLE_COLOR = 0xF81F;
 
-//Function prototypes:  ===============================================================================
-void clear_screen();
-void wait_for_vsync();
-void plot_pixel(int x, int y, short int line_color);
-void draw_player(int x, int y, int size);
-bool on_ground(int y, int size);
-void jump(int *y);
 
 //Player struct
 struct Player{
@@ -37,23 +30,32 @@ struct Player{
 };
 
 //obstacle struct
-struct obstacle{
+struct Obstacle{
     int x;
     int x_speed;
     int size;
-}
+};
+
+
+//Function prototypes:  ===============================================================================
+void clear_screen();
+void wait_for_vsync();
+void plot_pixel(int x, int y, short int line_color);
+void draw_player(int x, int y, int size);
+bool on_ground(int y, int size);
+void jump(int *y);
+bool spawn_obstacle();
+void draw_obstacle(struct Obstacle *obs); 
+
+
 
 int main(void)
 {
+
+    //Initialize FPGA  ===============================================================================
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
     volatile int * key_ptr = (int *)0xFF200050;                                                 //might need to use interrupts instead of key registers
    
-   
-   //Player attributes  ===============================================================================
-    const int PLAYER_SIZE = 15;
-    const int PLAYER_START_X = 125;
-    const int PLAYER_START_Y = 185;
-
     *(pixel_ctrl_ptr + 1) = 0xC8000000;                                      
     wait_for_vsync();
     pixel_buffer_start = *pixel_ctrl_ptr;
@@ -63,13 +65,27 @@ int main(void)
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
     
 
-    //initialize player
+    //Player attributes  ===============================================================================
+    const int PLAYER_SIZE = 15;
+    const int PLAYER_START_X = 125;
+    const int PLAYER_START_Y = 185;
+
+
+    //initialize player ===============================================================================
     struct Player player;
     player.x = PLAYER_START_X;
     player.y = PLAYER_START_Y;
     player.y_dir = 0;
     player.size = PLAYER_SIZE;
     player.is_grounded = true;
+
+    //Initialize obstacles  ===============================================================================
+    //struct Obstacle obstacle[10];
+
+    struct Obstacle test;
+    test.size = 10;
+    test.x = VGA_X_MAX;
+    test.x_speed = -10;
 
     //Main game loop
     while(1)
@@ -97,10 +113,38 @@ int main(void)
         
         player.y += player.y_dir;
 
+            draw_obstacle(&test);
+
         wait_for_vsync();
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); 
     }
 
+}
+
+
+bool spawn_obstacle()
+{
+    int num = rand () % 10;
+
+    if(num == 3)
+    {
+        printf("Spawning obstacle! \n");
+        return true;
+    }
+
+    return false;
+}
+
+void draw_obstacle(struct Obstacle *obs) 
+{
+    for(int x = obs->x; x < obs->x + obs->size; x++)
+    {
+        plot_pixel(obs->x, 100, OBSTACLE_COLOR);
+                plot_pixel(obs->x, 101, OBSTACLE_COLOR);
+                        plot_pixel(obs->x, 102, OBSTACLE_COLOR);
+    }
+
+        obs->x += obs->x_speed;
 }
 
 //Allows the player to jump
