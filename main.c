@@ -32,8 +32,17 @@ struct Player{
 //obstacle struct
 struct Obstacle{
     int x;
+    int y;
     int x_speed;
-    int size;
+    int width;
+    int height;
+};
+
+//Linked list of obstacles
+struct node
+{
+    struct Obstacle data;
+    struct Obstacle *next;
 };
 
 
@@ -44,8 +53,9 @@ void plot_pixel(int x, int y, short int line_color);
 void draw_player(int x, int y, int size);
 bool on_ground(int y, int size);
 void jump(int *y);
-bool spawn_obstacle();
-void draw_obstacle(struct Obstacle *obs); 
+void spawn_obstacle(struct node* head);
+void draw_obstacle(struct node* head); 
+bool collision(struct Player player);
 
 
 
@@ -80,12 +90,11 @@ int main(void)
     player.is_grounded = true;
 
     //Initialize obstacles  ===============================================================================
-    //struct Obstacle obstacle[10];
-
-    struct Obstacle test;
-    test.size = 10;
-    test.x = VGA_X_MAX;
-    test.x_speed = -10;
+    //Make linked list of obstacles
+    //new obstacles always are at the end of the screen (end of list)
+    //when obstacles get off screen: -> delete head of list
+    struct node *head = (struct node*)malloc(sizeof(struct node));
+    //struct node *tail = (struct node*)malloc(sizeof(struct node));
 
     //Main game loop
     while(1)
@@ -113,7 +122,10 @@ int main(void)
         
         player.y += player.y_dir;
 
-            draw_obstacle(&test);
+        //collision(player);
+
+        spawn_obstacle(head);
+        draw_obstacle(head);
 
         wait_for_vsync();
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); 
@@ -121,30 +133,63 @@ int main(void)
 
 }
 
+//forwards player collision detection using color detection
+bool collision(struct Player player)
+{
+    //checks up to 5 pixels ahead incase of pixel skipping (odd /even incrementing)
+    for(int i = 0; i < 2; i ++)
+    {   
+        //checks if color matches
+        if( *(short int *)(pixel_buffer_start + (player.y << 10) + ((player.x + i) << 1)) == OBSTACLE_COLOR)
+        {
+            printf("Oh no we hit something \n");
+            return true;
+        }
+    }
 
-bool spawn_obstacle()
+    return false;
+}
+
+void spawn_obstacle(struct node* head)
 {
     int num = rand () % 10;
 
     if(num == 3)
     {
         printf("Spawning obstacle! \n");
-        return true;
-    }
+        struct node* curr = head->next;
+        while(curr->next != NULL)
+        {
+            curr = curr->next;
+        }
+        struct node* newNode = (struct node*)malloc(sizeof(struct node));
 
-    return false;
+        //random for now just to test spawning
+        newNode->data.x = rand() % VGA_X_MAX;
+        newNode->data.y = rand() % VGA_Y_MAX;
+        newNode->data.x_speed = -2;
+        newNode->data.height = 25;
+        newNode->data.width = 25;
+
+        curr->next = newNode;
+    }
 }
 
-void draw_obstacle(struct Obstacle *obs) 
+void draw_obstacle(struct node* head) 
 {
-    for(int x = obs->x; x < obs->x + obs->size; x++)
+    struct node* curr = head->next;
+    while(curr->next != NULL)
     {
-        plot_pixel(obs->x, 100, OBSTACLE_COLOR);
-                plot_pixel(obs->x, 101, OBSTACLE_COLOR);
-                        plot_pixel(obs->x, 102, OBSTACLE_COLOR);
-    }
+        for(int x = curr->data.x; x <  curr->data.x +  curr->data.width; x++)
+        {
+            for(int y =  curr->data.y; y <  curr->data.y +  curr->data.height; y++)
+            {
+                plot_pixel(x,y,OBSTACLE_COLOR);
+            }
+        }
 
-        obs->x += obs->x_speed;
+        curr->data.x +=  curr->data.x_speed;
+    }
 }
 
 //Allows the player to jump
