@@ -42,7 +42,7 @@ struct Obstacle{
 struct node
 {
     struct Obstacle data;
-    struct Obstacle *next;
+    struct node *next;
 };
 
 
@@ -94,6 +94,7 @@ int main(void)
     //new obstacles always are at the end of the screen (end of list)
     //when obstacles get off screen: -> delete head of list
     struct node *head = (struct node*)malloc(sizeof(struct node));
+    head->next = NULL;
     //struct node *tail = (struct node*)malloc(sizeof(struct node));
 
     //Main game loop
@@ -157,7 +158,7 @@ void spawn_obstacle(struct node* head)
     if(num == 3)
     {
         printf("Spawning obstacle! \n");
-        struct node* curr = head->next;
+        struct node* curr = head;
         while(curr->next != NULL)
         {
             curr = curr->next;
@@ -165,11 +166,15 @@ void spawn_obstacle(struct node* head)
         struct node* newNode = (struct node*)malloc(sizeof(struct node));
 
         //random for now just to test spawning
-        newNode->data.x = rand() % VGA_X_MAX;
-        newNode->data.y = rand() % VGA_Y_MAX;
-        newNode->data.x_speed = -2;
-        newNode->data.height = 25;
-        newNode->data.width = 25;
+        struct Obstacle data;
+        data.x = VGA_X_MAX;
+        data.y = 100;
+        data.x_speed = -10;
+        data.height = 25;
+        data.width = 25;
+
+        newNode->data = data;
+        newNode->next = NULL;
 
         curr->next = newNode;
     }
@@ -177,18 +182,35 @@ void spawn_obstacle(struct node* head)
 
 void draw_obstacle(struct node* head) 
 {
-    struct node* curr = head->next;
+    struct node* curr = head;
+    struct node* prev = curr;
     while(curr->next != NULL)
     {
-        for(int x = curr->data.x; x <  curr->data.x +  curr->data.width; x++)
+        //off screen, delete from list
+        if(curr->data.x <= 0 && curr != head)
         {
-            for(int y =  curr->data.y; y <  curr->data.y +  curr->data.height; y++)
-            {
-                plot_pixel(x,y,OBSTACLE_COLOR);
-            }
+            printf("Deleting obstacle\n");
+            struct node* temp = curr;
+            prev->next = curr->next;
+            free (temp);
+            curr = prev->next;
         }
-
-        curr->data.x +=  curr->data.x_speed;
+        else
+        {
+            for(int x = curr->data.x; x <  curr->data.x +  curr->data.width; x++)
+            {
+                for(int y =  curr->data.y; y <  curr->data.y +  curr->data.height; y++)
+                {
+                    if(x <= VGA_X_MAX && x >= VGA_X_MIN && y >= VGA_Y_MIN  && y <= VGA_Y_MAX)
+                    {
+                        plot_pixel(x,y,OBSTACLE_COLOR);
+                    }
+                }
+            }
+            curr->data.x +=  curr->data.x_speed;
+            prev = curr;
+            curr = curr->next;
+        }
     }
 }
 
