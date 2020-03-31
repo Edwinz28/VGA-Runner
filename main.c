@@ -47,8 +47,7 @@ struct Obstacle{
 };
 
 //Linked list of obstacles
-struct node
-{
+struct node{
     struct Obstacle data;
     struct node *next;
 };
@@ -67,8 +66,7 @@ bool collision(struct Player player);
 void printTextOnScreen(int x, int y, char *scorePtr);
 
 
-int main(void)
-{
+int main(void){
     //Initialize the score to 0 =====================================================================
     totalScore = 0;
     scoreOnes = 0;
@@ -113,13 +111,12 @@ int main(void)
     //struct node *tail = (struct node*)malloc(sizeof(struct node));
 
     //Main game loop
-    while(1)
-    {
+    while(1){
         clear_screen();
         timeCount++;
 
         // Plot score ======================================================================================
-        if (timeCount == 10) {
+        if (timeCount == 2) {
             timeCount = 0;
             totalScore++;
             scoreHundreds = totalScore / 100;
@@ -154,8 +151,7 @@ int main(void)
         draw_player(player.x, player.y, player.size);
         player.is_grounded = on_ground(player.y, player.size);
 
-        if((*key_ptr & 0x01) && player.is_grounded)
-        {
+        if((*key_ptr & 0x01) && player.is_grounded){
             printf("Jumping! \n");
             jump(&player.y);
 
@@ -165,8 +161,7 @@ int main(void)
         }
 
         //reset gravity
-        if(player.is_grounded && player.y_dir != 0)
-        {
+        if(player.is_grounded && player.y_dir != 0){
             player.y_dir = 0;
         }
         
@@ -187,11 +182,9 @@ int main(void)
 bool collision(struct Player player)
 {
     //checks up to 5 pixels ahead incase of pixel skipping (odd /even incrementing)
-    for(int i = 0; i < 2; i ++)
-    {   
+    for(int i = 0; i < 2; i ++){   
         //checks if color matches
-        if( *(short int *)(pixel_buffer_start + (player.y << 10) + ((player.x + i) << 1)) == OBSTACLE_COLOR)
-        {
+        if( *(short int *)(pixel_buffer_start + (player.y << 10) + ((player.x + i) << 1)) == OBSTACLE_COLOR){
             printf("Oh no we hit something \n");
             return true;
         }
@@ -200,16 +193,13 @@ bool collision(struct Player player)
     return false;
 }
 
-void spawn_obstacle(struct node* head)
-{
+void spawn_obstacle(struct node* head){
     int num = rand () % 10;
 
-    if(num == 3)
-    {
+    if(num == 3){
         printf("Spawning obstacle! \n");
         struct node* curr = head;
-        while(curr->next != NULL)
-        {
+        while(curr->next != NULL){
             curr = curr->next;
         }
         struct node* newNode = (struct node*)malloc(sizeof(struct node));
@@ -217,7 +207,7 @@ void spawn_obstacle(struct node* head)
         //random for now just to test spawning
         struct Obstacle data;
         data.x = VGA_X_MAX;
-        data.y = 100;
+        data.y = 175;
         data.x_speed = -10;
         data.height = 25;
         data.width = 25;
@@ -229,33 +219,35 @@ void spawn_obstacle(struct node* head)
     }
 }
 
-void draw_obstacle(struct node* head) 
-{
+void draw_obstacle(struct node* head) {
     struct node* curr = head;
     struct node* prev = curr;
-    while(curr->next != NULL)
-    {
+    while(curr->next != NULL){
         //off screen, delete from list
-        if(curr->data.x <= 0 && curr != head)
-        {
+        if(curr->data.x <= 0 && curr != head){
             printf("Deleting obstacle\n");
             struct node* temp = curr;
             prev->next = curr->next;
             free (temp);
             curr = prev->next;
         }
-        else
-        {   
-            for(int x = curr->data.x; x <  curr->data.x +  curr->data.width; x++)
-            {
-                for(int y =  curr->data.y; y <  curr->data.y +  curr->data.height; y++)
-                {
-                    if(x <= VGA_X_MAX && x >= VGA_X_MIN && y >= VGA_Y_MIN  && y <= VGA_Y_MAX)
-                    {
-                        plot_pixel(x,y,OBSTACLE_COLOR);
+        else{   
+            for(int i = (200); i < (225); i++){
+                for(int j = (175); j < (200); j++){
+                    if((i <= VGA_X_MAX) && (i >= VGA_X_MIN) && (j >= VGA_Y_MIN)  && (j <= VGA_Y_MAX)){
+                        plot_pixel(i, j, OBSTACLE_COLOR);
                     }
                 }
             }
+            /*
+            for(int i = (curr->data.x); i < ((curr->data.x) + (curr->data.width)); i++){
+                for(int j = (curr->data.y); j < ((curr->data.y) + (curr->data.height)); j++){
+                    if((i <= VGA_X_MAX) && (i >= VGA_X_MIN) && (j >= VGA_Y_MIN)  && (j <= VGA_Y_MAX)){
+                        plot_pixel(i, j, OBSTACLE_COLOR);
+                    }
+                }
+            }
+            */
             curr->data.x +=  curr->data.x_speed;
             prev = curr;
             curr = curr->next;
@@ -264,13 +256,12 @@ void draw_obstacle(struct node* head)
 }
 
 //Allows the player to jump
-void jump(int * y)
-{
+void jump(int * y){
     *y -= 50;
 }
+
 //Draws player
-void draw_player(int x, int y, int size)
-{
+void draw_player(int x, int y, int size){
     //draws a square for now needs to be updated to draw an actual player
     for (int i = x; i < x + size; i++)
     {
@@ -284,8 +275,7 @@ void draw_player(int x, int y, int size)
 
 
 //clears screen to background
-void clear_screen()
-{
+void clear_screen(){
     //Sky & background
     for(int x = VGA_X_MIN; x <= VGA_X_MAX; x++){
         for(int y = VGA_Y_MIN; y <= VGA_Y_MAX; y++){
@@ -294,10 +284,8 @@ void clear_screen()
     }
 
     //Ground
-    for(int x = 0; x < VGA_X_MAX; x++)
-    {
-        for(int y = GROUND_Y_START; y < VGA_Y_MAX; y++)
-        {
+    for(int x = 0; x < VGA_X_MAX; x++){
+        for(int y = GROUND_Y_START; y < VGA_Y_MAX; y++){
             plot_pixel(x,y, GROUND_COLOR);
         }
     }
@@ -309,8 +297,7 @@ void printTextOnScreen(int x, int y, char *scorePtr){
     /* assume that the text string fits on one line */
     int offset = (y << 7) + x;
 
-    while (*(scorePtr)) // while it hasn't reach the null-terminating char in the string
-    {
+    while (*(scorePtr)){ // while it hasn't reach the null-terminating char in the string
         // write to the character buffer
         *(character_buffer + offset) = *(scorePtr);
         ++scorePtr;
@@ -320,10 +307,8 @@ void printTextOnScreen(int x, int y, char *scorePtr){
 
 //==================================================================== Finalized code ========================================
 //Checks if player is on ground
-bool on_ground(int y, int size)
-{
-    if(y + size >= GROUND_Y_START)
-    {
+bool on_ground(int y, int size){
+    if(y + size >= GROUND_Y_START){
         return true;
     }
 
@@ -333,22 +318,18 @@ bool on_ground(int y, int size)
 
 
 //plots pixels on VGA
-void plot_pixel(int x, int y, short int line_color)
-{
+void plot_pixel(int x, int y, short int line_color){
     *(short int *)(pixel_buffer_start + (y << 10) + (x << 1)) = line_color;
 }
 
-void wait_for_vsync()
-{
+void wait_for_vsync(){
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
 
     volatile int * status =(int *)0xFF20302C;
 
     *pixel_ctrl_ptr = 1;
 
-
-    while((*status &0x1) != 0)
-    {
+    while((*status &0x1) != 0){
             //do nothing
     }
 
