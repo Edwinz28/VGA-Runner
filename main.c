@@ -3,6 +3,8 @@
 #include <stdio.h>
 
 volatile int pixel_buffer_start; // global variable
+volatile char *character_buffer = (char *) 0xC9000000;// VGA character buffer
+volatile int *LEDR_ptr = (int *) 0xFF200000;
 
 //VGA boundaries ===============================================================================
 const int VGA_X_MIN = 0;
@@ -19,6 +21,12 @@ const short int BACKGROUND_COLOR = 0x001F;
 const short int PLAYER_BODY_COLOR = 0xF800;
 const short int OBSTACLE_COLOR = 0xF81F;
 
+//Scores ==================================================================================================================
+int totalScore;
+int scoreOnes;
+int scoreTens;
+int scoreHundreds;
+int timeCount;
 
 //Player struct
 struct Player{
@@ -56,15 +64,22 @@ void jump(int *y);
 void spawn_obstacle(struct node* head);
 void draw_obstacle(struct node* head); 
 bool collision(struct Player player);
-
+void printTextOnScreen(int x, int y, char *scorePtr);
 
 
 int main(void)
 {
+    //Initialize the score to 0 =====================================================================
+    totalScore = 0;
+    scoreOnes = 0;
+    scoreTens = 0;
+    scoreHundreds = 0;
+    *LEDR_ptr = 0;
+    timeCount = 0;
 
     //Initialize FPGA  ===============================================================================
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
-    volatile int * key_ptr = (int *)0xFF200050;                                                 //might need to use interrupts instead of key registers
+    volatile int * key_ptr = (int *)0xFF200050; //might need to use interrupts instead of key registers
    
     *(pixel_ctrl_ptr + 1) = 0xC8000000;                                      
     wait_for_vsync();
@@ -101,7 +116,41 @@ int main(void)
     while(1)
     {
         clear_screen();
+        timeCount++;
 
+        // Plot score ======================================================================================
+        if (timeCount == 10) {
+            timeCount = 0;
+            totalScore++;
+            scoreHundreds = totalScore / 100;
+            scoreTens = (totalScore - scoreHundreds * 100) / 10;
+            scoreOnes = totalScore - scoreHundreds * 100 - scoreTens * 10;
+            *LEDR_ptr = totalScore;
+        }
+
+        char myScoreString[40];
+        if (scoreHundreds != 0) {
+            myScoreString[0] = scoreHundreds + '0';
+        } 
+        
+        else {
+            myScoreString[0] = ' ';
+        }
+        
+        if (scoreHundreds == 0 && scoreTens == 0) {
+            myScoreString[1] = ' ';
+        } 
+        
+        else {
+            myScoreString[1] = scoreTens + '0';
+        }
+        
+        myScoreString[2] = scoreOnes + '0';
+        myScoreString[3] = '\0';
+        
+        printTextOnScreen(300, 0, myScoreString);
+        
+        // Draw player ==================================================================================
         draw_player(player.x, player.y, player.size);
         player.is_grounded = on_ground(player.y, player.size);
 
@@ -196,7 +245,7 @@ void draw_obstacle(struct node* head)
             curr = prev->next;
         }
         else
-        {
+        {   
             for(int x = curr->data.x; x <  curr->data.x +  curr->data.width; x++)
             {
                 for(int y =  curr->data.y; y <  curr->data.y +  curr->data.height; y++)
@@ -251,6 +300,21 @@ void clear_screen()
         {
             plot_pixel(x,y, GROUND_COLOR);
         }
+    }
+}
+
+
+//Print text on the Screen
+void printTextOnScreen(int x, int y, char *scorePtr){
+    /* assume that the text string fits on one line */
+    int offset = (y << 7) + x;
+
+    while (*(scorePtr)) // while it hasn't reach the null-terminating char in the string
+    {
+        // write to the character buffer
+        *(character_buffer + offset) = *(scorePtr);
+        ++scorePtr;
+        ++offset;
     }
 }
 
