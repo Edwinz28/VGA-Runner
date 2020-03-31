@@ -125,27 +125,38 @@ int main(void){
             *LEDR_ptr = totalScore;
         }
 
-        char myScoreString[40];
+        char myScoreString[15];
+        myScoreString[0] = 'M';
+        myScoreString[1] = 'Y';
+        myScoreString[2] = ' ';
+        myScoreString[3] = 'S';
+        myScoreString[4] = 'C';
+        myScoreString[5] = 'O';
+        myScoreString[6] = 'R';
+        myScoreString[7] = 'E';
+        myScoreString[8] = ':';
+        myScoreString[9] = ' ';
+
         if (scoreHundreds != 0) {
-            myScoreString[0] = scoreHundreds + '0';
+            myScoreString[10] = scoreHundreds + '0';
         } 
         
         else {
-            myScoreString[0] = ' ';
+            myScoreString[10] = ' ';
         }
         
         if (scoreHundreds == 0 && scoreTens == 0) {
-            myScoreString[1] = ' ';
+            myScoreString[11] = ' ';
         } 
         
         else {
-            myScoreString[1] = scoreTens + '0';
+            myScoreString[11] = scoreTens + '0';
         }
         
-        myScoreString[2] = scoreOnes + '0';
-        myScoreString[3] = '\0';
+        myScoreString[12] = scoreOnes + '0';
+        myScoreString[13] = '\0';
         
-        printTextOnScreen(300, 0, myScoreString);
+        printTextOnScreen(285, 0, myScoreString);
         
         // Draw player ==================================================================================
         draw_player(player.x, player.y, player.size);
