@@ -106,9 +106,7 @@ int main(void){
     //Make linked list of obstacles
     //new obstacles always are at the end of the screen (end of list)
     //when obstacles get off screen: -> delete head of list
-    struct node *head = (struct node*)malloc(sizeof(struct node));
-    head->next = NULL;
-    //struct node *tail = (struct node*)malloc(sizeof(struct node));
+    struct node *head = NULL;
 
     //Main game loop
     while(1){
@@ -205,62 +203,86 @@ bool collision(struct Player player)
 }
 
 void spawn_obstacle(struct node* head){
-    int num = rand () % 10;
+    //Liklihood to spawn obstacle
+    int num = rand() % 10;
 
-    if(num == 3){
-        printf("Spawning obstacle! \n");
-        struct node* curr = head;
-        while(curr->next != NULL){
-            curr = curr->next;
+    if(num == 3)
+    {
+        if(head == NULL)
+        {
+            printf("Spawning obstacle! New head \n");  
+            struct node* newNode = (struct node*)malloc(sizeof(struct node));
+
+            //random for now just to test spawning
+            struct Obstacle data;
+            data.x = VGA_X_MAX;
+            data.y = rand () % VGA_Y_MAX;
+            data.x_speed = -10;
+            data.height = 25;
+            data.width = 25;
+
+            newNode->data = data;
+            newNode->next = NULL;
+
+            //Assigns to head
+            head = newNode;
         }
-        struct node* newNode = (struct node*)malloc(sizeof(struct node));
+        else
+        {
+            printf("Spawning obstacle! \n");
+            struct node* curr = head;
+        
+            while(curr->next != NULL)
+            {
+                curr = curr->next;
+            }
+            struct node* newNode = (struct node*)malloc(sizeof(struct node));
 
-        //random for now just to test spawning
-        struct Obstacle data;
-        data.x = VGA_X_MAX;
-        data.y = 175;
-        data.x_speed = -10;
-        data.height = 25;
-        data.width = 25;
+            //random for now just to test spawning
+            struct Obstacle data;
+            data.x = VGA_X_MAX;
+            data.y = rand () % VGA_Y_MAX;
+            data.x_speed = -10;
+            data.height = 25;
+            data.width = 25;
 
-        newNode->data = data;
-        newNode->next = NULL;
+            newNode->data = data;
+            newNode->next = NULL;
 
-        curr->next = newNode;
+            curr->next = newNode;
+        }
     }
 }
 
 void draw_obstacle(struct node* head) {
+    //Empty list
+    if(head == NULL)
+    {
+        printf("No obstacles to draw\n");
+        return;
+    }
+    
     struct node* curr = head;
-    struct node* prev = curr;
+    
+    //Draws obstacles
     while(curr->next != NULL){
         //off screen, delete from list
-        if(curr->data.x <= 0 && curr != head){
+        if(curr->data.x <= 0){
             printf("Deleting obstacle\n");
             struct node* temp = curr;
-            prev->next = curr->next;
-            free (temp);
-            curr = prev->next;
+            curr = curr->next;
+            free(temp);
+            head = curr;
         }
         else{   
-            for(int i = (200); i < (225); i++){
-                for(int j = (175); j < (200); j++){
-                    if((i <= VGA_X_MAX) && (i >= VGA_X_MIN) && (j >= VGA_Y_MIN)  && (j <= VGA_Y_MAX)){
+            for(int i = curr->data.x; i < curr->data.x + curr->data.width; i++){
+                for(int j = curr->data.y; j < curr->data.y +curr->data.height; j++){
+                    if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX){
                         plot_pixel(i, j, OBSTACLE_COLOR);
                     }
                 }
             }
-            /*
-            for(int i = (curr->data.x); i < ((curr->data.x) + (curr->data.width)); i++){
-                for(int j = (curr->data.y); j < ((curr->data.y) + (curr->data.height)); j++){
-                    if((i <= VGA_X_MAX) && (i >= VGA_X_MIN) && (j >= VGA_Y_MIN)  && (j <= VGA_Y_MAX)){
-                        plot_pixel(i, j, OBSTACLE_COLOR);
-                    }
-                }
-            }
-            */
             curr->data.x +=  curr->data.x_speed;
-            prev = curr;
             curr = curr->next;
         }
     }
