@@ -60,8 +60,8 @@ void plot_pixel(int x, int y, short int line_color);
 void draw_player(int x, int y, int size);
 bool on_ground(int y, int size);
 void jump(int *y);
-void spawn_obstacle(struct node* head);
-void draw_obstacle(struct node* head); 
+struct node* spawn_obstacle(struct node* head);
+struct node* draw_obstacle(struct node* head); 
 bool collision(struct Player player);
 void printTextOnScreen(int x, int y, char *scorePtr);
 
@@ -178,8 +178,8 @@ int main(void){
 
         //collision(player);
 
-        spawn_obstacle(head);
-        draw_obstacle(head);
+        head = spawn_obstacle(head);
+        head = draw_obstacle(head);
 
         wait_for_vsync();
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); 
@@ -202,7 +202,7 @@ bool collision(struct Player player)
     return false;
 }
 
-void spawn_obstacle(struct node* head){
+struct node* spawn_obstacle(struct node* head){
     //Liklihood to spawn obstacle
     int num = rand() % 10;
 
@@ -252,9 +252,12 @@ void spawn_obstacle(struct node* head){
             curr->next = newNode;
         }
     }
+
+    return head;
 }
 
-void draw_obstacle(struct node* head) {
+struct node* draw_obstacle(struct node* head) {
+    
     //Empty list
     if(head == NULL)
     {
@@ -286,6 +289,8 @@ void draw_obstacle(struct node* head) {
             curr = curr->next;
         }
     }
+
+    return head;
 }
 
 //Allows the player to jump
