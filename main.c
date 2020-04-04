@@ -13,18 +13,11 @@ const int VGA_Y_MIN = 0;
 const int VGA_Y_MAX = 239;
 const int GROUND_Y_START = 200;
 
-//colors 
+//Color Constants
 const short int GROUND_COLOR = 0x07E0;
 const short int BACKGROUND_COLOR = 0x001F;
 const short int PLAYER_BODY_COLOR = 0xF800;
 const short int OBSTACLE_COLOR = 0xF81F;
-
-//Scores
-int totalScore;
-int scoreOnes;
-int scoreTens;
-int scoreHundreds;
-int timeCount;
 
 //Player struct
 struct Player{
@@ -58,18 +51,19 @@ void plot_pixel(int x, int y, short int line_color);
 void draw_player(int x, int y, int size);
 struct node* spawn_obstacle(struct node* head);
 struct node* draw_obstacle(struct node* head); 
+struct Obstacle create_obstacle();
 bool collision(struct Player player);
 void printTextOnScreen(int x, int y, char *scorePtr);
 
 
 int main(void){
     //Initialize the score to 0
-    totalScore = 0;
-    scoreOnes = 0;
-    scoreTens = 0;
-    scoreHundreds = 0;
+    int totalScore = 0;
+    int scoreOnes = 0;
+    int scoreTens = 0;
+    int scoreHundreds = 0;
     *LEDR_ptr = 0;
-    timeCount = 0;
+    int timeCount = 0;
 
     //Initialize FPGA 
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020; //Vga buffer
@@ -85,7 +79,7 @@ int main(void){
     
     //Player attributes
     const int PLAYER_SIZE = 15;
-    const int PLAYER_START_X = 125;
+    const int PLAYER_START_X = 75;
     const int PLAYER_START_Y = 185;
 
     //initialize player
@@ -205,7 +199,17 @@ bool collision(struct Player player)
 
 
 /* ///////////////////////////////////////////////////// Obstacle spawning ////////////////////////////////////////////// */
+struct Obstacle create_obstacle()
+{
+    struct Obstacle data;
+    data.x = VGA_X_MAX;
+    data.y = rand () % VGA_Y_MAX;
+    data.x_speed = -10;
+    data.height = 25;
+    data.width = 25;
 
+    return data;
+}
 //randomly spawns obstacles and inserts into a linked list
 struct node* spawn_obstacle(struct node* head){
     //Liklihood to spawn obstacle
@@ -218,14 +222,7 @@ struct node* spawn_obstacle(struct node* head){
             printf("Spawning obstacle! New head \n");  
             struct node* newNode = (struct node*)malloc(sizeof(struct node));
 
-            //random for now just to test spawning
-            struct Obstacle data;
-            data.x = VGA_X_MAX;
-            data.y = rand () % VGA_Y_MAX;
-            data.x_speed = -10;
-            data.height = 25;
-            data.width = 25;
-
+            struct Obstacle data = create_obstacle();
             newNode->data = data;
             newNode->next = NULL;
 
@@ -243,14 +240,7 @@ struct node* spawn_obstacle(struct node* head){
             }
             struct node* newNode = (struct node*)malloc(sizeof(struct node));
 
-            //random for now just to test spawning
-            struct Obstacle data;
-            data.x = VGA_X_MAX;
-            data.y = rand () % VGA_Y_MAX;
-            data.x_speed = -10;
-            data.height = 25;
-            data.width = 25;
-
+            struct Obstacle data = create_obstacle();
             newNode->data = data;
             newNode->next = NULL;
 
@@ -303,7 +293,7 @@ struct node* draw_obstacle(struct node* head) {
 }
 
 
-/*//////////////////////////////////////////////////////////////    VGA DRAWING /////////////////////////////////////////////////////////*/
+/*//////////////////////////////////////////////////////////////    VGA DRAWING   /////////////////////////////////////////////////////////*/
 
 //Print text on the Screen
 void printTextOnScreen(int x, int y, char *scorePtr){
