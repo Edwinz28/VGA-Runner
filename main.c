@@ -278,9 +278,12 @@ struct node* draw_obstacle(struct node* head) {
             head = curr;
         }
         else{   
-            for(int i = curr->data.x; i < curr->data.x + curr->data.width; i++){
-                for(int j = curr->data.y; j < curr->data.y +curr->data.height; j++){
-                    if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX){
+            for(int i = curr->data.x; i < curr->data.x + curr->data.width; i++)
+            {
+                for(int j = curr->data.y; j < curr->data.y +curr->data.height; j++)
+                {
+                    if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
+                    {
                         plot_pixel(i, j, OBSTACLE_COLOR);
                     }
                 }
