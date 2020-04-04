@@ -34,7 +34,7 @@ struct Player{
     int y;
     int size;
     int y_dir;
-    bool is_grounded;
+    int x_dir;
 };
 
 //obstacle struct
@@ -78,6 +78,8 @@ int main(void){
     //Initialize FPGA  ===============================================================================
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
     volatile int * key_ptr = (int *)0xFF200050; //might need to use interrupts instead of key registers
+    
+    volatile int* PS2_ptr = (int *) 0xFF200100; // ps2 keyboard
    
     *(pixel_ctrl_ptr + 1) = 0xC8000000;                                      
     wait_for_vsync();
@@ -107,6 +109,9 @@ int main(void){
     //new obstacles always are at the end of the screen (end of list)
     //when obstacles get off screen: -> delete head of list
     struct node *head = NULL;
+
+    int PS2_data;
+    unsigned char data_in = 0;
 
     //Main game loop
     while(1){
@@ -155,25 +160,24 @@ int main(void){
         myScoreString[13] = '\0';
         
         printTextOnScreen(285, 0, myScoreString);
-        
+
+
+        PS2_data = *PS2_ptr;
+        data_in = PS2_data & 0xFF;
+
+        //Gets direction code
+        if(data_in == 0x1B)
+        {
+            player.y_dir = 5;
+        }
+        else if(data_in == 0x1D)
+        {
+            player.y_dir = -5;
+        }
+
         // Draw player ==================================================================================
         draw_player(player.x, player.y, player.size);
-        player.is_grounded = on_ground(player.y, player.size);
-
-        if((*key_ptr & 0x01) && player.is_grounded){
-            printf("Jumping! \n");
-            jump(&player.y);
-
-            //updates player status
-            player.y_dir = 10;
-            player.is_grounded = false;
-        }
-
-        //reset gravity
-        if(player.is_grounded && player.y_dir != 0){
-            player.y_dir = 0;
-        }
-        
+ 
         player.y += player.y_dir;
 
         //collision(player);
@@ -296,10 +300,6 @@ struct node* draw_obstacle(struct node* head) {
     return head;
 }
 
-//Allows the player to jump
-void jump(int * y){
-    *y -= 50;
-}
 
 //Draws player
 void draw_player(int x, int y, int size){
@@ -347,16 +347,6 @@ void printTextOnScreen(int x, int y, char *scorePtr){
 }
 
 //==================================================================== Finalized code ========================================
-//Checks if player is on ground
-bool on_ground(int y, int size){
-    if(y + size >= GROUND_Y_START){
-        return true;
-    }
-
-    return false;
-}
-
-
 
 //plots pixels on VGA
 void plot_pixel(int x, int y, short int line_color){
