@@ -11,17 +11,15 @@ const int VGA_X_MIN = 0;
 const int VGA_X_MAX = 319;
 const int VGA_Y_MIN = 0;
 const int VGA_Y_MAX = 239;
-
-//Background boundaries  ===============================================================================
 const int GROUND_Y_START = 200;
 
-//colors ========= Very temporary for now  ===============================================================================
+//colors 
 const short int GROUND_COLOR = 0x07E0;
 const short int BACKGROUND_COLOR = 0x001F;
 const short int PLAYER_BODY_COLOR = 0xF800;
 const short int OBSTACLE_COLOR = 0xF81F;
 
-//Scores ==================================================================================================================
+//Scores
 int totalScore;
 int scoreOnes;
 int scoreTens;
@@ -53,13 +51,11 @@ struct node{
 };
 
 
-//Function prototypes:  ===============================================================================
+//Function prototypes:
 void clear_screen();
 void wait_for_vsync();
 void plot_pixel(int x, int y, short int line_color);
 void draw_player(int x, int y, int size);
-bool on_ground(int y, int size);
-void jump(int *y);
 struct node* spawn_obstacle(struct node* head);
 struct node* draw_obstacle(struct node* head); 
 bool collision(struct Player player);
@@ -67,7 +63,7 @@ void printTextOnScreen(int x, int y, char *scorePtr);
 
 
 int main(void){
-    //Initialize the score to 0 =====================================================================
+    //Initialize the score to 0
     totalScore = 0;
     scoreOnes = 0;
     scoreTens = 0;
@@ -75,10 +71,8 @@ int main(void){
     *LEDR_ptr = 0;
     timeCount = 0;
 
-    //Initialize FPGA  ===============================================================================
-    volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
-    volatile int * key_ptr = (int *)0xFF200050; //might need to use interrupts instead of key registers
-    
+    //Initialize FPGA 
+    volatile int * pixel_ctrl_ptr = (int *)0xFF203020; //Vga buffer
     volatile int* PS2_ptr = (int *) 0xFF200100; // ps2 keyboard
    
     *(pixel_ctrl_ptr + 1) = 0xC8000000;                                      
@@ -89,36 +83,38 @@ int main(void){
     *(pixel_ctrl_ptr + 1) = 0xC0000000;
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
     
-
-    //Player attributes  ===============================================================================
+    //Player attributes
     const int PLAYER_SIZE = 15;
     const int PLAYER_START_X = 125;
     const int PLAYER_START_Y = 185;
 
-
-    //initialize player ===============================================================================
+    //initialize player
     struct Player player;
     player.x = PLAYER_START_X;
     player.y = PLAYER_START_Y;
     player.y_dir = 0;
+    player.x_dir = 0;
     player.size = PLAYER_SIZE;
-    player.is_grounded = true;
 
-    //Initialize obstacles  ===============================================================================
+
+    //Initialize obstacles 
     //Make linked list of obstacles
     //new obstacles always are at the end of the screen (end of list)
     //when obstacles get off screen: -> delete head of list
     struct node *head = NULL;
 
+    //Initialize Ps2 Keyboard data
     int PS2_data;
     unsigned char data_in = 0;
 
+    bool gameOver = false;
+
     //Main game loop
-    while(1){
+    while(!gameOver){
         clear_screen();
         timeCount++;
 
-        // Plot score ======================================================================================
+        // Plot score
         if (timeCount == 2) {
             timeCount = 0;
             totalScore++;
@@ -180,7 +176,7 @@ int main(void){
  
         player.y += player.y_dir;
 
-        //collision(player);
+        //gameOver = collision(player);
 
         head = spawn_obstacle(head);
         head = draw_obstacle(head);
@@ -199,6 +195,7 @@ bool collision(struct Player player)
         //checks if color matches
         if( *(short int *)(pixel_buffer_start + (player.y << 10) + ((player.x + i) << 1)) == OBSTACLE_COLOR){
             printf("Oh no we hit something \n");
+            //return true, game is now over
             return true;
         }
     }
@@ -206,6 +203,10 @@ bool collision(struct Player player)
     return false;
 }
 
+
+/* ///////////////////////////////////////////////////// Obstacle spawning ////////////////////////////////////////////// */
+
+//randomly spawns obstacles and inserts into a linked list
 struct node* spawn_obstacle(struct node* head){
     //Liklihood to spawn obstacle
     int num = rand() % 10;
@@ -260,6 +261,7 @@ struct node* spawn_obstacle(struct node* head){
     return head;
 }
 
+//Draws obstacles and deletes from linked list if off screen
 struct node* draw_obstacle(struct node* head) {
     
     //Empty list
@@ -274,7 +276,7 @@ struct node* draw_obstacle(struct node* head) {
     //Draws obstacles
     while(curr->next != NULL){
         //off screen, delete from list
-        if(curr->data.x <= 0){
+        if(curr->data.x + curr->data.width <= 0){
             printf("Deleting obstacle\n");
             struct node* temp = curr;
             curr = curr->next;
@@ -301,6 +303,21 @@ struct node* draw_obstacle(struct node* head) {
 }
 
 
+/*//////////////////////////////////////////////////////////////    VGA DRAWING /////////////////////////////////////////////////////////*/
+
+//Print text on the Screen
+void printTextOnScreen(int x, int y, char *scorePtr){
+    /* assume that the text string fits on one line */
+    int offset = (y << 7) + x;
+
+    while (*(scorePtr)){ // while it hasn't reach the null-terminating char in the string
+        // write to the character buffer
+        *(character_buffer + offset) = *(scorePtr);
+        ++scorePtr;
+        ++offset;
+    }
+}
+
 //Draws player
 void draw_player(int x, int y, int size){
     //draws a square for now needs to be updated to draw an actual player
@@ -312,8 +329,6 @@ void draw_player(int x, int y, int size){
         }
     }
 }
-
-
 
 //clears screen to background
 void clear_screen(){
@@ -332,27 +347,12 @@ void clear_screen(){
     }
 }
 
-
-//Print text on the Screen
-void printTextOnScreen(int x, int y, char *scorePtr){
-    /* assume that the text string fits on one line */
-    int offset = (y << 7) + x;
-
-    while (*(scorePtr)){ // while it hasn't reach the null-terminating char in the string
-        // write to the character buffer
-        *(character_buffer + offset) = *(scorePtr);
-        ++scorePtr;
-        ++offset;
-    }
-}
-
-//==================================================================== Finalized code ========================================
-
 //plots pixels on VGA
 void plot_pixel(int x, int y, short int line_color){
     *(short int *)(pixel_buffer_start + (y << 10) + (x << 1)) = line_color;
 }
 
+//Waits for buffers to sync before switching
 void wait_for_vsync(){
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
 
