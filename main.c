@@ -48,7 +48,7 @@ struct node{
 void clear_screen();
 void wait_for_vsync();
 void plot_pixel(int x, int y, short int line_color);
-void draw_player(int x, int y, int size);
+void draw_player(int x, int y, int size, short int color, int offset);
 struct node* spawn_obstacle(struct node* head);
 struct node* draw_obstacle(struct node* head); 
 struct Obstacle create_obstacle();
@@ -105,7 +105,6 @@ int main(void){
     clear_screen();
     //Main game loop
     while(!gameOver){
-        //clear_screen();
         timeCount++;
 
         // Plot score
@@ -156,25 +155,33 @@ int main(void){
         data_in = PS2_data & 0xFF;
 
         //Gets direction code
-        if(data_in == 0x1B)
+        if(data_in == 0x1B && player.y + player.size < VGA_Y_MAX)
         {
             player.y_dir = 5;
         }
-        else if(data_in == 0x1D)
+        else if(data_in == 0x1D && player.y > VGA_Y_MIN)
         {
             player.y_dir = -5;
         }
         else if(data_in == 0xF0)
         {
-            //break code, do nothing
-            //doesnt work rightn now
+            //keyboard break code
+            //not working as of right now
         }
+        else
+        {
+            player.y_dir = 0;
+        }
+        
 
-        // Draw player
-        draw_player(player.x, player.y, player.size);
- 
+        // Erases player
+        draw_player(player.x, player.y, player.size , BACKGROUND_COLOR, abs(player.y_dir));
+        
+        //updates new player direction
         player.y += player.y_dir;
-
+        // Draw player
+        draw_player(player.x, player.y, player.size , PLAYER_BODY_COLOR, 0);
+ 
         //gameOver = collision(player);
 
         head = spawn_obstacle(head);
@@ -324,13 +331,16 @@ void printTextOnScreen(int x, int y, char *scorePtr){
 }
 
 //Draws player
-void draw_player(int x, int y, int size){
+void draw_player(int x, int y, int size, short int color, int offset){
     //draws a square for now needs to be updated to draw an actual player
-    for (int i = x; i < x + size; i++)
+    for (int i = x - offset; i < x + size + offset; i++)
     {
-        for(int j = y; j < y + size; j++)
+        for(int j = y - offset; j < y + size + offset; j++)
         {
-            plot_pixel(i, j, PLAYER_BODY_COLOR);
+            if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
+            {
+                plot_pixel(i, j, color);
+            }
         }
     }
 }
