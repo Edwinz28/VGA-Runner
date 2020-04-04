@@ -6,7 +6,7 @@ volatile int pixel_buffer_start; // global variable
 volatile char *character_buffer = (char *) 0xC9000000;// VGA character buffer
 volatile int *LEDR_ptr = (int *) 0xFF200000;
 
-//VGA boundaries ===============================================================================
+//VGA boundaries
 const int VGA_X_MIN = 0;
 const int VGA_X_MAX = 319;
 const int VGA_Y_MIN = 0;
@@ -19,7 +19,7 @@ const short int BACKGROUND_COLOR = 0x001F;
 const short int PLAYER_BODY_COLOR = 0xF800;
 const short int OBSTACLE_COLOR = 0xF81F;
 
-//Player struct
+//Player struct definiton
 struct Player{
     int x;
     int y;
@@ -28,7 +28,7 @@ struct Player{
     int x_dir;
 };
 
-//obstacle struct
+//obstacle struct definition
 struct Obstacle{
     int x;
     int y;
@@ -54,7 +54,7 @@ struct node* draw_obstacle(struct node* head);
 struct Obstacle create_obstacle();
 bool collision(struct Player player);
 void printTextOnScreen(int x, int y, char *scorePtr);
-
+void draw_obstacle_helper(struct node* curr, short int color, int offset);
 
 int main(void){
     //Initialize the score to 0
@@ -102,10 +102,10 @@ int main(void){
     unsigned char data_in = 0;
 
     bool gameOver = false;
-
+    clear_screen();
     //Main game loop
     while(!gameOver){
-        clear_screen();
+        //clear_screen();
         timeCount++;
 
         // Plot score
@@ -164,8 +164,13 @@ int main(void){
         {
             player.y_dir = -5;
         }
+        else if(data_in == 0xF0)
+        {
+            //break code, do nothing
+            //doesnt work rightn now
+        }
 
-        // Draw player ==================================================================================
+        // Draw player
         draw_player(player.x, player.y, player.size);
  
         player.y += player.y_dir;
@@ -173,6 +178,7 @@ int main(void){
         //gameOver = collision(player);
 
         head = spawn_obstacle(head);
+        //clear_bg(head);
         head = draw_obstacle(head);
 
         wait_for_vsync();
@@ -204,7 +210,7 @@ struct Obstacle create_obstacle()
     struct Obstacle data;
     data.x = VGA_X_MAX;
     data.y = rand () % VGA_Y_MAX;
-    data.x_speed = -10;
+    data.x_speed = -2;
     data.height = 25;
     data.width = 25;
 
@@ -213,7 +219,7 @@ struct Obstacle create_obstacle()
 //randomly spawns obstacles and inserts into a linked list
 struct node* spawn_obstacle(struct node* head){
     //Liklihood to spawn obstacle
-    int num = rand() % 10;
+    int num = rand() % 50;
 
     if(num == 3)
     {
@@ -258,7 +264,7 @@ struct node* draw_obstacle(struct node* head) {
     if(head == NULL)
     {
         printf("No obstacles to draw\n");
-        return;
+        return NULL;
     }
     
     struct node* curr = head;
@@ -274,17 +280,12 @@ struct node* draw_obstacle(struct node* head) {
             head = curr;
         }
         else{   
-            for(int i = curr->data.x; i < curr->data.x + curr->data.width; i++)
-            {
-                for(int j = curr->data.y; j < curr->data.y +curr->data.height; j++)
-                {
-                    if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
-                    {
-                        plot_pixel(i, j, OBSTACLE_COLOR);
-                    }
-                }
-            }
+            //clears old obstacles
+            draw_obstacle_helper(curr, BACKGROUND_COLOR, 2);
+            
             curr->data.x +=  curr->data.x_speed;
+            //Draws new obstacle positions 
+            draw_obstacle_helper(curr, OBSTACLE_COLOR, 0);
             curr = curr->next;
         }
     }
@@ -292,8 +293,22 @@ struct node* draw_obstacle(struct node* head) {
     return head;
 }
 
-
 /*//////////////////////////////////////////////////////////////    VGA DRAWING   /////////////////////////////////////////////////////////*/
+
+//Iterates through the obstacle sizes and draws them, uses an offset to full clear old drawings
+void draw_obstacle_helper(struct node* curr, short int color, int offset)
+{
+    for(int i = curr->data.x - offset; i < curr->data.x + curr->data.width + offset; i++)
+    {
+        for(int j = curr->data.y - offset; j < curr->data.y +curr->data.height + offset; j++)
+        {
+            if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
+            {
+                plot_pixel(i, j, color);
+            }
+        }
+    }
+}
 
 //Print text on the Screen
 void printTextOnScreen(int x, int y, char *scorePtr){
@@ -328,13 +343,13 @@ void clear_screen(){
             plot_pixel(x,y,BACKGROUND_COLOR);
         }
     }
-
+    /*
     //Ground
     for(int x = 0; x < VGA_X_MAX; x++){
         for(int y = GROUND_Y_START; y < VGA_Y_MAX; y++){
             plot_pixel(x,y, GROUND_COLOR);
         }
-    }
+    }*/
 }
 
 //plots pixels on VGA
