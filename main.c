@@ -7,10 +7,10 @@ volatile char *character_buffer = (char *) 0xC9000000;// VGA character buffer
 volatile int *LEDR_ptr = (int *) 0xFF200000;
 
 //VGA boundaries
-const int VGA_X_MIN = 0;
-const int VGA_X_MAX = 319;
-const int VGA_Y_MIN = 0;
-const int VGA_Y_MAX = 239;
+const int VGA_X_MIN = 1;
+const int VGA_X_MAX = 318;
+const int VGA_Y_MIN = 1;
+const int VGA_Y_MAX = 238;
 const int GROUND_Y_START = 200;
 
 //Color Constants
@@ -103,6 +103,7 @@ int main(void){
 
     bool gameOver = false;
     clear_screen();
+
     //Main game loop
     while(!gameOver){
         timeCount++;
@@ -150,43 +151,45 @@ int main(void){
         
         printTextOnScreen(285, 0, myScoreString);
 
-
         PS2_data = *PS2_ptr;
         data_in = PS2_data & 0xFF;
 
         //Gets direction code
         if(data_in == 0x1B && player.y + player.size < VGA_Y_MAX)
         {
-            player.y_dir = 5;
+            player.x_dir = 0;
+            player.y_dir = 2;
         }
         else if(data_in == 0x1D && player.y > VGA_Y_MIN)
         {
-            player.y_dir = -5;
+            player.x_dir = 0;
+            player.y_dir = -2;
         }
-        else if(data_in == 0xF0)
-        {
-            //keyboard break code
-            //not working as of right now
-        }
-        else
+        else if(data_in == 0x1C && player.x > VGA_X_MIN)
         {
             player.y_dir = 0;
+            player.x_dir = -2;
+        }
+        else if(data_in == 0x23 && player.x + player.size < VGA_Y_MAX)
+        {
+            player.y_dir = 0;
+            player.x_dir = 2;
         }
         
-
         // Erases player
-        draw_player(player.x, player.y, player.size , BACKGROUND_COLOR, abs(player.y_dir));
+        draw_player(player.x, player.y, player.size , BACKGROUND_COLOR, 3);
         
         //updates new player direction
         player.y += player.y_dir;
+        player.x += player.x_dir;
         // Draw player
         draw_player(player.x, player.y, player.size , PLAYER_BODY_COLOR, 0);
  
-        //gameOver = collision(player);
-
         head = spawn_obstacle(head);
         //clear_bg(head);
         head = draw_obstacle(head);
+
+        gameOver = collision(player);
 
         wait_for_vsync();
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); 
@@ -197,13 +200,16 @@ int main(void){
 //forwards player collision detection using color detection
 bool collision(struct Player player)
 {
-    //checks up to 5 pixels ahead incase of pixel skipping (odd /even incrementing)
-    for(int i = 0; i < 2; i ++){   
-        //checks if color matches
-        if( *(short int *)(pixel_buffer_start + (player.y << 10) + ((player.x + i) << 1)) == OBSTACLE_COLOR){
+    for(int x = player.x; x < player.x + player.size; x++)
+    {
+        for(int y = player.y; y < player.y + player.size; y++)
+        {
+            if( *(short int *)(pixel_buffer_start + (y << 10) + (x << 1)) == OBSTACLE_COLOR)
+            {
             printf("Oh no we hit something \n");
             //return true, game is now over
             return true;
+            }
         }
     }
 
@@ -353,13 +359,6 @@ void clear_screen(){
             plot_pixel(x,y,BACKGROUND_COLOR);
         }
     }
-    /*
-    //Ground
-    for(int x = 0; x < VGA_X_MAX; x++){
-        for(int y = GROUND_Y_START; y < VGA_Y_MAX; y++){
-            plot_pixel(x,y, GROUND_COLOR);
-        }
-    }*/
 }
 
 //plots pixels on VGA
@@ -378,6 +377,5 @@ void wait_for_vsync(){
     while((*status &0x1) != 0){
             //do nothing
     }
-
     return;
 }
