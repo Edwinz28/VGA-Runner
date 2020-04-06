@@ -207,7 +207,6 @@ bool collision(struct Player player)
             if( *(short int *)(pixel_buffer_start + (y << 10) + (x << 1)) == OBSTACLE_COLOR)
             {
             printf("Oh no we hit something \n");
-            //return true, game is now over
             return true;
             }
         }
