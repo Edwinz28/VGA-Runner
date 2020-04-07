@@ -541,7 +541,7 @@ bool collision(struct Player player)
             if( *(short int *)(pixel_buffer_start + (y << 10) + (x << 1)) == Asteroid_map[30 * b + a - 1])
             {
             printf("Oh no we hit something \n");
-            return true;
+            //return true;
             }
             b++;
         }
