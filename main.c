@@ -378,13 +378,14 @@ void clear_screen();
 void wait_for_vsync();
 void plot_pixel(int x, int y, short int line_color);
 void draw_player(int x, int y, int x_size, int y_size, int offset);
+void clear_player(int x, int y, int x_size, int y_size, int offset);
 struct node* spawn_obstacle(struct node* head);
 struct node* draw_obstacle(struct node* head); 
 struct Obstacle create_obstacle();
 bool collision(struct Player player);
 void printTextOnScreen(int x, int y, char *scorePtr);
 void draw_obstacle_helper(struct node* curr, int offset);
-void draw_background_helper(struct node* curr, int offset);
+void clear_obstacle_helper(struct node* curr, int offset);
 
 int main(void){
     //Initialize the score to 0
@@ -434,7 +435,6 @@ int main(void){
     unsigned char data_in = 0;
 
     bool gameOver = false;
-    clear_screen();
 
     //Main game loop
     while(!gameOver){
@@ -509,8 +509,7 @@ int main(void){
         }
         
         // Erases player
-        //draw_background_helper(player.x, player.y, player.x_size, player.y_size, SpaceBackground_map, 3);
-        clear_screen();
+        clear_player(player.x, player.y, player.x_size, player.y_size, 3);
 
         //updates new player direction
         player.y += player.y_dir;
@@ -533,6 +532,38 @@ int main(void){
 //forwards player collision detection using color detection
 bool collision(struct Player player)
 {
+    int i = player.x;
+    int j = player.y;
+
+    for (int k = 0 ; k < 65 * 30 * 2 - 1; k+= 2) {
+        int red = ((Asteroid_map[k + 1] & 0xF8) >> 3) << 11;
+        int green  = (((Asteroid_map[k] & 0xE0) >> 5)) | ((Asteroid_map[k+1] & 0x7) << 3) ;		                
+        int blue = (Asteroid_map[k] & 0x1f);
+            
+        short int p = red | ( (green << 5) | blue);
+
+        if( *(short int *)(pixel_buffer_start + (j << 10) + (i << 1)) == p)
+        {
+            printf("Oh no, we hit something \n");
+            //return true, game is now over
+            return true;
+        }
+                
+        i+=1;
+
+        if (i == player.x + player.x_size) {
+            i = player.x;
+            j+=1;
+        }
+
+        if (j >= player.y + player.y_size){
+            return false;
+        }
+    }
+
+    return false;
+
+    /*
     int a = 0, b = 0;
     for(int x = player.x; x < player.x + player.x_size; x++)
     {
@@ -551,6 +582,8 @@ bool collision(struct Player player)
     }
 
     return false;
+
+    */
 }
 
 
@@ -631,8 +664,7 @@ struct node* draw_obstacle(struct node* head) {
         }
         else{   
             //clears old obstacles
-            //draw_obstacle_helper(curr, SpaceBackground_map, 2);
-            clear_screen();
+            clear_obstacle_helper(curr, 2);
 
             curr->data.x +=  curr->data.x_speed;
             //Draws new obstacle positions 
@@ -652,46 +684,59 @@ void draw_obstacle_helper(struct node* curr, int offset)
     int i = curr->data.x - offset;
     int j = curr->data.y - offset;
 
-    if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
-    {
-        for (int k = 0 ; k < 65 * 30 * 2 - 1; k+= 2) {
-            int red = ((Asteroid_map[k + 1] & 0xF8) >> 3) << 11;
-            int green  = (((Asteroid_map[k] & 0xE0) >> 5)) | ((Asteroid_map[k+1] & 0x7) << 3) ;		                
-            int blue = (Asteroid_map[k] & 0x1f);
+    for (int k = 0 ; k < 65 * 30 * 2 - 1; k+= 2) {
+        int red = ((Asteroid_map[k + 1] & 0xF8) >> 3) << 11;
+        int green  = (((Asteroid_map[k] & 0xE0) >> 5)) | ((Asteroid_map[k+1] & 0x7) << 3) ;		                
+        int blue = (Asteroid_map[k] & 0x1f);
             
-            short int p = red | ( (green << 5) | blue);
+        short int p = red | ( (green << 5) | blue);
                 
+        if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX && Asteroid_map[k] != 0x00)
+        {
             plot_pixel( 0 + i, j, p);
+        }
                 
-            i+=1;
+        i+=1;
 
-            if (i == curr->data.x + curr->data.width + offset) {
-                i = curr->data.x - offset;
-                j+=1;
-            }
+        if (i == curr->data.x + curr->data.width + offset) {
+            i = curr->data.x - offset;
+            j+=1;
+        }
 
-            if (j >= curr->data.y + curr->data.height + offset){
-                return;
-            }
+        if (j >= curr->data.y + curr->data.height + offset){
+            return;
         }
     }
-    
-    /*
-    int a = 0, b = 0;
+}
 
-    for(int i = curr->data.x - offset; i < curr->data.x + curr->data.width + offset; i++)
-    {
-        for(int j = curr->data.y - offset; j < curr->data.y +curr->data.height + offset; j++)
+void clear_obstacle_helper(struct node* curr, int offset){
+    int i = curr->data.x - offset;
+    int j = curr->data.y - offset;
+
+    for (int k = 320*j + i - 1; k < 320 * 240 * 2 - 1; k+= 2) {
+        int red = ((SpaceBackground_map[k + 1] & 0xF8) >> 3) << 11;
+        int green  = (((SpaceBackground_map[k] & 0xE0) >> 5)) | ((SpaceBackground_map[k+1] & 0x7) << 3) ;		                
+        int blue = (SpaceBackground_map[k] & 0x1f);
+            
+        short int p = red | ( (green << 5) | blue);
+                
+        if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
         {
-            if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
-            {
-                plot_pixel(i, j, Asteroid_map[30 * b + a - 1]);
-            }
-            b++;
+            plot_pixel( 0 + i, j, p);
         }
-        b = 0;
-        a++;
-    }*/
+                
+        i+=1;
+
+        if (i == curr->data.x + curr->data.width + offset) {
+            i = curr->data.x - offset;
+            j+=1;
+            k = (320*j + i - 1);
+        }
+
+        if (j >= curr->data.y + curr->data.height + offset){
+            return;
+        }
+    }
 }
 
 //Print text on the Screen
@@ -713,29 +758,60 @@ void draw_player(int x, int y, int x_size, int y_size, int offset){
     int i = x - offset;
     int j = y - offset;
 
-    if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
-    {
-        for (int k = 0 ; k < 75 * 43 * 2 - 1; k+= 2) {
-            int red = ((Spaceship_map[k + 1] & 0xF8) >> 3) << 11;
-            int green  = (((Spaceship_map[k] & 0xE0) >> 5)) | ((Spaceship_map[k+1] & 0x7) << 3) ;		                
-            int blue = (Spaceship_map[k] & 0x1f);
+    for (int k = 0 ; k < 75 * 43 * 2 - 1; k+= 2) {
+        int red = ((Spaceship_map[k + 1] & 0xF8) >> 3) << 11;
+        int green  = (((Spaceship_map[k] & 0xE0) >> 5)) | ((Spaceship_map[k+1] & 0x7) << 3) ;		                
+        int blue = (Spaceship_map[k] & 0x1f);
             
-            short int p = red | ( (green << 5) | blue);
-                
+        short int p = red | ( (green << 5) | blue);
+
+        if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX && Spaceship_map[k] != 0x00)
+        {
             plot_pixel( 0 + i, j, p);
+        }
                 
-            i+=1;
+        i+=1;
 
-            if (i == x + x_size + offset) {
-                i = x - offset;
-                j+=1;
-            }
+        if (i == x + x_size + offset) {
+            i = x - offset;
+            j+=1;
+        }
 
-            if (j >= y + y_size + offset){
-                return;
-            }
+        if (j == y + y_size + offset){
+            return;
         }
     }
+}
+
+void clear_player(int x, int y, int x_size, int y_size, int offset){
+    //draws a square for now needs to be updated to draw an actual player
+    int i = x - offset;
+    int j = y - offset;
+
+    for (int k = 320*j + i - 1; k < 320 * 240 * 2 - 1; k+= 2) {
+        int red = ((SpaceBackground_map[k + 1] & 0xF8) >> 3) << 11;
+        int green  = (((SpaceBackground_map[k] & 0xE0) >> 5)) | ((SpaceBackground_map[k+1] & 0x7) << 3) ;		                
+        int blue = (SpaceBackground_map[k] & 0x1f);
+            
+        short int p = red | ( (green << 5) | blue);
+                
+        if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
+        {
+            plot_pixel( 0 + i, j, p);
+        }
+                
+        i+=1;
+
+        if (i == x + x_size + offset) {
+            i = x - offset;
+            j+=1;
+            k = (320*j + i - 1);
+        }
+
+        if (j == y + y_size + offset){
+            return;
+        }
+    } 
 }
 
 //clears screen to background
