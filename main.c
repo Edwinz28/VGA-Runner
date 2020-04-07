@@ -301,7 +301,6 @@ const unsigned int Shark_map[] = {//75x45
 //#endif
 };
 
-
 //Character Image
 const unsigned int Character_map[] = {//75 x 45
 //#if LV_COLOR_DEPTH == 16 && LV_COLOR_16_SWAP == 0
@@ -404,6 +403,7 @@ bool collision(struct Player player);
 void printTextOnScreen(int x, int y, char *scorePtr);
 void draw_obstacle_helper(struct node* curr, int offset);
 void clear_obstacle_helper(struct node* curr, int offset);
+short int return_color(int x, int y);
 
 int main(void){
     //Initialize the score to 0
@@ -417,7 +417,7 @@ int main(void){
     //Initialize FPGA 
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020; //Vga buffer
     volatile int* PS2_ptr = (int *) 0xFF200100; // ps2 keyboard
-   
+
     *(pixel_ctrl_ptr + 1) = 0xC8000000;                                      
     wait_for_vsync();
     pixel_buffer_start = *pixel_ctrl_ptr;
@@ -425,7 +425,8 @@ int main(void){
     
     *(pixel_ctrl_ptr + 1) = 0xC0000000;
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
-    
+    clear_screen();
+
     //Player attributes
     const int PLAYER_X_SIZE = 75;
     const int PLAYER_Y_SIZE = 45;
@@ -459,7 +460,7 @@ int main(void){
         timeCount++;
 
         // Plot score
-        if (timeCount == 20) {
+        if (timeCount == 15) {
             timeCount = 0;
             totalScore++;
             scoreHundreds = totalScore / 100;
@@ -534,7 +535,7 @@ int main(void){
         player.x += player.x_dir;
         // Draw player
         draw_player(player.x, player.y, player.x_size, player.y_size, 0);
- 
+
         head = spawn_obstacle(head);
         //clear_bg(head);
         head = draw_obstacle(head);
@@ -554,6 +555,13 @@ bool collision(struct Player player)
     int j = player.y;
 
     for (int k = 0 ; k < 75 * 45 * 2 - 1; k+= 2) {
+        if (!(Shark_map[k] == 0x00 && Shark_map[k+1] == 0x00)){
+                continue;
+        }
+        if (!(Character_map[k] == 0x00 && Character_map[k+1] == 0x00)){
+                continue;
+        }
+
         int red = ((Shark_map[k + 1] & 0xF8) >> 3) << 11;
         int green  = (((Shark_map[k] & 0xE0) >> 5)) | ((Shark_map[k+1] & 0x7) << 3) ;		                
         int blue = (Shark_map[k] & 0x1f);
@@ -575,33 +583,11 @@ bool collision(struct Player player)
         }
 
         if (j >= player.y + player.y_size){
-            return false;
-        }
-    }
-
-    return false;
-
-    /*
-    int a = 0, b = 0;
-    for(int x = player.x; x < player.x + player.x_size; x++)
-    {
-        for(int y = player.y; y < player.y + player.y_size; y++)
-        {
-            if( *(short int *)(pixel_buffer_start + (y << 10) + (x << 1)) == Shark_map[30 * b + a - 1])
-            {
-            printf("Oh no we hit something \n");
-            //return true, game is now over
             return true;
-            }
-            b++;
         }
-        b = 0;
-        a++;
     }
 
     return false;
-
-    */
 }
 
 
@@ -612,8 +598,8 @@ struct Obstacle create_obstacle()
     data.x = VGA_X_MAX;
     data.y = rand () % VGA_Y_MAX;
     data.x_speed = -2;
-    data.height = 25;
-    data.width = 25;
+    data.height = 45;
+    data.width = 75;
 
     return data;
 }
@@ -708,10 +694,12 @@ void draw_obstacle_helper(struct node* curr, int offset)
         int blue = (Shark_map[k] & 0x1f);
             
         short int p = red | ( (green << 5) | blue);
-                
-        if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX && Shark_map[k] != 0x00)
+
+        if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
         {
-            plot_pixel( 0 + i, j, p);
+            if (!(Shark_map[k] == 0x00 && Shark_map[k+1] == 0x00)){
+                plot_pixel( 0 + i, j, p);
+            }
         }
                 
         i+=1;
@@ -731,7 +719,7 @@ void clear_obstacle_helper(struct node* curr, int offset){
     int i = curr->data.x - offset;
     int j = curr->data.y - offset;
 
-    for (int k = ((320 * j + i) * 2 - 1); k < (320 * 240 * 2 - 1); k+= 2) {
+    for (int k = ((320 * j + i) * 2); k < (320 * 240 * 2 - 1); k+= 2) {
         int red = ((OceanBG_map[k + 1] & 0xF8) >> 3) << 11;
         int green  = (((OceanBG_map[k] & 0xE0) >> 5)) | ((OceanBG_map[k+1] & 0x7) << 3) ;		                
         int blue = (OceanBG_map[k] & 0x1f);			
@@ -740,7 +728,10 @@ void clear_obstacle_helper(struct node* curr, int offset){
                 
         if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
         {
-            plot_pixel( 0 + i, j, p);
+            short int color = return_color(i,j);
+            if(color != p){
+                plot_pixel( 0 + i, j, p);
+            }
         }
                 
         i+=1;
@@ -748,7 +739,7 @@ void clear_obstacle_helper(struct node* curr, int offset){
         if (i == curr->data.x + curr->data.width + offset) {
             i = curr->data.x - offset;
             j+=1;
-            k = ((320*j + i)*2 - 3);
+            k = ((320*j + i)*2 - 2);
         }
 
         if (j >= curr->data.y + curr->data.height + offset){
@@ -806,7 +797,7 @@ void clear_player(int x, int y, int x_size, int y_size, int offset){
     int i = x - offset;
     int j = y - offset;
 
-    for (int k = ((320 * j + i) * 2 - 1); k < (320 * 240 * 2 - 1); k+= 2) {
+    for (int k = ((320 * j + i) * 2); k < (320 * 240 * 2 - 1); k+= 2) {
         int red = ((OceanBG_map[k + 1] & 0xF8) >> 3) << 11;
         int green  = (((OceanBG_map[k] & 0xE0) >> 5)) | ((OceanBG_map[k+1] & 0x7) << 3) ;		                
         int blue = (OceanBG_map[k] & 0x1f);			
@@ -815,7 +806,10 @@ void clear_player(int x, int y, int x_size, int y_size, int offset){
                 
         if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
         {
-            plot_pixel( 0 + i, j, p);
+            short int color = return_color(i,j);
+            if(color != p){
+                plot_pixel( 0 + i, j, p);
+            }
         }
                 
         i+=1;
@@ -823,7 +817,7 @@ void clear_player(int x, int y, int x_size, int y_size, int offset){
         if (i == x + x_size + offset) {
             i = x - offset;
             j+=1;
-            k = ((320*j + i)*2 - 3);
+            k = ((320*j + i)*2 - 2);
         }
 
         if (j == y + y_size + offset){
@@ -857,6 +851,11 @@ void clear_screen(){
 //plots pixels on VGA
 void plot_pixel(int x, int y, short int line_color){
     *(short int *)(pixel_buffer_start + (y << 10) + (x << 1)) = line_color;
+}
+
+short int return_color(int x, int y){
+    short int color = 0;
+    return color = *(short int *)(pixel_buffer_start + (y << 10) + (x << 1));
 }
 
 //Waits for buffers to sync before switching
