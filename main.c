@@ -583,7 +583,7 @@ bool collision(struct Player player)
         }
 
         if (j >= player.y + player.y_size){
-            return true;
+            return false;
         }
     }
 
