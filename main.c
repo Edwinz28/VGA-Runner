@@ -399,7 +399,7 @@ void clear_player(int x, int y, int x_size, int y_size, int offset);
 struct node* spawn_obstacle(struct node* head);
 struct node* draw_obstacle(struct node* head); 
 struct Obstacle create_obstacle();
-bool collision(struct Player player);
+bool collision(struct Player player, struct node* head);
 void printTextOnScreen(int x, int y, char *scorePtr);
 void draw_obstacle_helper(struct node* curr, int offset);
 void clear_obstacle_helper(struct node* curr, int offset);
@@ -544,7 +544,7 @@ int main(void){
         
         head = spawn_obstacle(head);
         head = draw_obstacle(head);
-        gameOver = collision(player);
+        gameOver = collision(player, head);
 
         wait_for_vsync();
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); 
@@ -552,45 +552,46 @@ int main(void){
 
 }
 
-//forwards player collision detection using color detection
-bool collision(struct Player player)
+//forwards player collision detection using position comparison
+bool collision(struct Player player, struct node* head)
 {
-    int i = player.x;
-    int j = player.y;
+    const int X_OFFSET = 5;
+    const int Y_OFFSET = 25;
+    if(head == NULL)
+    {
+        //No obstacle nothing to collide
+        return false;
+    }
 
-    for (int k = 0 ; k < 75 * 45 * 2 - 1; k+= 2) {
-        if (!(Shark_map[k] == 0x00 && Shark_map[k+1] == 0x00)){
-                continue;
-        }
-        if (!(Character_map[k] == 0x00 && Character_map[k+1] == 0x00)){
-                continue;
-        }
-
-        int red = ((Shark_map[k + 1] & 0xF8) >> 3) << 11;
-        int green  = (((Shark_map[k] & 0xE0) >> 5)) | ((Shark_map[k+1] & 0x7) << 3) ;		                
-        int blue = (Shark_map[k] & 0x1f);
-            
-        short int p = red | ( (green << 5) | blue);
-
-        if( *(short int *)(pixel_buffer_start + (j << 10) + (i << 1)) == p)
+    struct node* curr = head;
+    while(curr->next != NULL)
+    {
+        struct Obstacle obs = curr->data;
+        if(obs.x <= 0) 
         {
-            printf("Oh no, we hit something \n");
+            curr = curr->next;
+            continue;
+        }
+        if(player.x + player.x_size >= obs.x && player.y >= obs.y && player.y <= obs.y + obs.height - Y_OFFSET)
+        {
+            printf("Hit something 1 \n");
             return true;
         }
-                
-        i+=1;
-
-        if (i == player.x + player.x_size) {
-            i = player.x;
-            j+=1;
+        else if(player.x + player.x_size >= obs.x && obs.y >= player.y && obs.y <= player.y + player.y_size - Y_OFFSET)
+        {
+            printf("Hit something 2 \n");
+            return true;
         }
-
-        if (j >= player.y + player.y_size){
-            return false;
+        else if(player.y <= obs.y + obs.height && player.x + player.x_size >= obs.x && player.x + player.x_size <= obs.x + obs.width)
+        {
+            printf("Hit something 3 \n");
+            //return true;
         }
+        curr = curr->next;
     }
 
     return false;
+    
 }
 
 
@@ -625,6 +626,7 @@ struct node* spawn_obstacle(struct node* head){
         }
         else
         {
+            printf("Spawning obstacle \n");
             struct node* curr = head;
             while(curr->next != NULL)
             {
@@ -665,7 +667,7 @@ struct node* draw_obstacle(struct node* head) {
         }
         else{   
             //clears old obstacles
-            clear_obstacle_helper(curr, 0);//curr->data.x_speed);
+            clear_obstacle_helper(curr, curr->data.x_speed + 1);//curr->data.x_speed);
             curr->data.x +=  curr->data.x_speed;
             //Draws new obstacle positions 
             draw_obstacle_helper(curr, 0);
@@ -711,7 +713,7 @@ void draw_obstacle_helper(struct node* curr, int offset)
 }
 
 void clear_obstacle_helper(struct node* curr, int offset){
-    int i = curr->data.x - offset;
+    int i = curr->data.x + offset;
     int j = curr->data.y - offset;
 
     for (int k = ((320 * j + i) * 2); k < (320 * 240 * 2 - 1); k+= 2) {
@@ -788,7 +790,6 @@ void draw_player(int x, int y, int x_size, int y_size, int offset){
 }
 
 void clear_player(int x, int y, int x_size, int y_size, int offset){
-    //draws a square for now needs to be updated to draw an actual player
     int i = x - offset;
     int j = y - offset;
 
