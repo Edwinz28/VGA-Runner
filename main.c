@@ -509,23 +509,29 @@ int main(void){
         if(data_in == 0x1B && player.y + player.y_size < VGA_Y_MAX)
         {
             player.x_dir = 0;
-            player.y_dir = 2;
+            player.y_dir = 3;
         }
         else if(data_in == 0x1D && player.y > VGA_Y_MIN)
         {
             player.x_dir = 0;
-            player.y_dir = -2;
+            player.y_dir = -3;
         }
         else if(data_in == 0x1C && player.x > VGA_X_MIN)
         {
             player.y_dir = 0;
-            player.x_dir = -2;
+            player.x_dir = -3;
         }
         else if(data_in == 0x23 && player.x + player.x_size < VGA_Y_MAX)
         {
             player.y_dir = 0;
-            player.x_dir = 2;
+            player.x_dir = 3;
         }
+        else
+        {
+            player.y_dir = 0;
+            player.x_dir = 0;
+        }
+        
         
         // Erases player
         clear_player(player.x, player.y, player.x_size, player.y_size, 3);
@@ -535,11 +541,9 @@ int main(void){
         player.x += player.x_dir;
         // Draw player
         draw_player(player.x, player.y, player.x_size, player.y_size, 0);
-
+        
         head = spawn_obstacle(head);
-        //clear_bg(head);
         head = draw_obstacle(head);
-
         gameOver = collision(player);
 
         wait_for_vsync();
@@ -571,7 +575,6 @@ bool collision(struct Player player)
         if( *(short int *)(pixel_buffer_start + (j << 10) + (i << 1)) == p)
         {
             printf("Oh no, we hit something \n");
-            //return true, game is now over
             return true;
         }
                 
@@ -597,7 +600,7 @@ struct Obstacle create_obstacle()
     struct Obstacle data;
     data.x = VGA_X_MAX;
     data.y = rand () % VGA_Y_MAX;
-    data.x_speed = -2;
+    data.x_speed = -5;
     data.height = 45;
     data.width = 75;
 
@@ -606,15 +609,13 @@ struct Obstacle create_obstacle()
 //randomly spawns obstacles and inserts into a linked list
 struct node* spawn_obstacle(struct node* head){
     //Liklihood to spawn obstacle
-    int num = rand() % 50;
+    int num = rand() % 40;
 
     if(num == 3)
     {
         if(head == NULL)
         {
-            printf("Spawning obstacle! New head \n");  
             struct node* newNode = (struct node*)malloc(sizeof(struct node));
-
             struct Obstacle data = create_obstacle();
             newNode->data = data;
             newNode->next = NULL;
@@ -624,9 +625,7 @@ struct node* spawn_obstacle(struct node* head){
         }
         else
         {
-            printf("Spawning obstacle! \n");
             struct node* curr = head;
-        
             while(curr->next != NULL)
             {
                 curr = curr->next;
@@ -650,7 +649,6 @@ struct node* draw_obstacle(struct node* head) {
     //Empty list
     if(head == NULL)
     {
-        printf("No obstacles to draw\n");
         return NULL;
     }
     
@@ -660,7 +658,6 @@ struct node* draw_obstacle(struct node* head) {
     while(curr->next != NULL){
         //off screen, delete from list
         if(curr->data.x + curr->data.width <= 0){
-            printf("Deleting obstacle\n");
             struct node* temp = curr;
             curr = curr->next;
             free(temp);
@@ -668,15 +665,13 @@ struct node* draw_obstacle(struct node* head) {
         }
         else{   
             //clears old obstacles
-            clear_obstacle_helper(curr, 2);
-
+            clear_obstacle_helper(curr, 0);//curr->data.x_speed);
             curr->data.x +=  curr->data.x_speed;
             //Draws new obstacle positions 
             draw_obstacle_helper(curr, 0);
             curr = curr->next;
         }
     }
-
     return head;
 }
 
@@ -828,7 +823,6 @@ void clear_player(int x, int y, int x_size, int y_size, int offset){
 
 //clears screen to background
 void clear_screen(){
-    //Sky & background
     int i = 0, j = 0;	
 	for (int k = 0 ; k < 320 * 240 * 2 - 1; k+= 2) {
         int red = ((OceanBG_map[k + 1] & 0xF8) >> 3) << 11;
