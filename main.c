@@ -600,11 +600,14 @@ const unsigned int Loss_BG_map[] = {//320 x 240
 //#endif
 };
 
-volatile int pixel_buffer_start; // global variable
-volatile char *character_buffer = (char *) 0xC9000000;// VGA character buffer
-volatile int *LEDR_ptr = (int *) 0xFF200000;
+/* ///////////////////////////////////////////////////// Definitions  ////////////////////////////////////////////// */
 
-//VGA boundaries
+//Global VGA pointers
+volatile int pixel_buffer_start; //Pixel buffer
+volatile char *character_buffer = (char *) 0xC9000000;// VGA character buffer
+volatile int *LEDR_ptr = (int *) 0xFF200000;  //Led Ptr
+
+//VGA drawing boundaries
 const int VGA_X_MIN = 1;
 const int VGA_X_MAX = 318;
 const int VGA_Y_MIN = 1;
@@ -636,25 +639,57 @@ struct node{
     struct node *next;
 };
 
+/* ///////////////////////////////////////////////////// Function prototypes ////////////////////////////////////////////// */
 
-//Function prototypes:
+//Clears screen to background image
 void clear_screen();
+
+//Waits for back buffer to finish drawing
 void wait_for_vsync();
+
+//Plots singular pixel
 void plot_pixel(int x, int y, short int line_color);
+
+//Draws player
 void draw_player(int x, int y, int x_size, int y_size, int offset);
+
+//Clears player by erasing the old player position
 void clear_player(int x, int y, int x_size, int y_size, int offset);
+
+//Spawning obstacle algorithm
 struct node* spawn_obstacle(struct node* head);
+
+//Draws obstacles
 struct node* draw_obstacle(struct node* head); 
+
+//Creates obstacle (constructor)
 struct Obstacle create_obstacle();
-bool collision(struct Player player, struct node* head);
-void printTextOnScreen(int x, int y, char *scorePtr);
+
+//Helper to draw obstacle
 void draw_obstacle_helper(struct node* curr, int offset);
+
+//Helper to clear obstacle by erasing old obstacle position
 void clear_obstacle_helper(struct node* curr, int offset);
-void draw_game_over_screen();
-void run_game();
-void run_game_over();
+
+//returns the color at a VGA pixel position
 short int return_color(int x, int y);
 
+//Checks if player collided with obstacle
+bool collision(struct Player player, struct node* head);
+
+//Prints score
+void printTextOnScreen(int x, int y, char *scorePtr);
+
+//draws game over
+void draw_game_over_screen();
+
+//runs main game
+void run_game();
+
+//runs game over loop waiting for restart
+void run_game_over();
+
+/* ///////////////////////////////////////////////////// Main functions  ////////////////////////////////////////////// */
 int main(void)
 {
     while(true)
@@ -662,20 +697,21 @@ int main(void)
         run_game();
         run_game_over();
     }
-    
+    return 0;
 }
 
 void run_game_over()
 {
-    volatile int * pixel_ctrl_ptr = (int *)0xFF203020; //Vga buffer
+    volatile int * pixel_ctrl_ptr = (int *)0xFF203020; 
     draw_game_over_screen();
     wait_for_vsync();
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); 
 
-    volatile int* PS2_ptr = (int *) 0xFF200100; // ps2 keyboard
+    volatile int* PS2_ptr = (int *) 0xFF200100; 
     int PS2_data;
     unsigned char data_in = 0;
 
+    //Obtains spacebar input from user to restart
     while(true)
     {
         PS2_data = *PS2_ptr;
@@ -687,6 +723,7 @@ void run_game_over()
 
     }
 }
+
 void run_game()
 {
     //Initialize the score to 0
@@ -833,9 +870,10 @@ void run_game()
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); 
     }
 }
-//player collision detection using position comparison
+
 bool collision(struct Player player, struct node* head)
 {
+    //Pixel offset, required because obstacle hitbox is not perfect to the shape of obstacle
     const int X_OFFSET = 5;
     const int Y_OFFSET = 25;
     if(head == NULL)
@@ -851,11 +889,13 @@ bool collision(struct Player player, struct node* head)
         if(obs.x <= 0) 
         {
             curr = curr->next;
+            //off screen but not deleted, skip
             continue;
         }
         else if(obs.x + obs.width < player.x - X_OFFSET)
         {
             curr = curr->next;
+            //player already passed this obstacle, skip
             continue;
         }
         else if(player.x + player.x_size >= obs.x && player.y >= obs.y && player.y <= obs.y + obs.height - Y_OFFSET)
@@ -868,9 +908,7 @@ bool collision(struct Player player, struct node* head)
         }
         curr = curr->next;
     }
-
     return false;
-    
 }
 
 
@@ -886,13 +924,13 @@ struct Obstacle create_obstacle()
 
     return data;
 }
-//randomly spawns obstacles and inserts into a linked list
 struct node* spawn_obstacle(struct node* head){
     //Liklihood to spawn obstacle
     int num = rand() % 40;
 
     if(num == 3)
     {
+        //Initialize head of linked list
         if(head == NULL)
         {
             struct node* newNode = (struct node*)malloc(sizeof(struct node));
@@ -905,7 +943,7 @@ struct node* spawn_obstacle(struct node* head){
         }
         else
         {
-            printf("Spawning obstacle \n");
+            //Add to end of linked list
             struct node* curr = head;
             while(curr->next != NULL)
             {
@@ -920,11 +958,9 @@ struct node* spawn_obstacle(struct node* head){
             curr->next = newNode;
         }
     }
-
     return head;
 }
 
-//Draws obstacles and deletes from linked list if off screen
 struct node* draw_obstacle(struct node* head) {
     
     //Empty list
