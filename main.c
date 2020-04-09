@@ -651,10 +651,44 @@ void printTextOnScreen(int x, int y, char *scorePtr);
 void draw_obstacle_helper(struct node* curr, int offset);
 void clear_obstacle_helper(struct node* curr, int offset);
 void draw_game_over_screen();
-
+void run_game();
+void run_game_over();
 short int return_color(int x, int y);
 
-int main(void){
+int main(void)
+{
+    while(true)
+    {
+        run_game();
+        run_game_over();
+    }
+    
+}
+
+void run_game_over()
+{
+    volatile int * pixel_ctrl_ptr = (int *)0xFF203020; //Vga buffer
+    draw_game_over_screen();
+    wait_for_vsync();
+    pixel_buffer_start = *(pixel_ctrl_ptr + 1); 
+
+    volatile int* PS2_ptr = (int *) 0xFF200100; // ps2 keyboard
+    int PS2_data;
+    unsigned char data_in = 0;
+
+    while(true)
+    {
+        PS2_data = *PS2_ptr;
+        data_in = PS2_data & 0xFF;
+        if(data_in == 0x29)
+        {
+            break;
+        }
+
+    }
+}
+void run_game()
+{
     //Initialize the score to 0
     int totalScore = 0;
     int scoreOnes = 0;
@@ -783,7 +817,7 @@ int main(void){
         
         
         // Erases player
-        clear_player(player.x, player.y, player.x_size, player.y_size, 3);
+        clear_player(player.x, player.y, player.x_size, player.y_size, 4);
 
         //updates new player direction
         player.y += player.y_dir;
@@ -798,10 +832,8 @@ int main(void){
         wait_for_vsync();
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); 
     }
-
 }
-
-//forwards player collision detection using position comparison
+//player collision detection using position comparison
 bool collision(struct Player player, struct node* head)
 {
     const int X_OFFSET = 5;
