@@ -972,15 +972,18 @@ struct node* draw_obstacle(struct node* head) {
     struct node* curr = head;
     
     //Draws obstacles
-    while(curr->next != NULL){
+    while(curr->next != NULL)
+    {
         //off screen, delete from list
-        if(curr->data.x + curr->data.width <= 0){
+        if(curr->data.x + curr->data.width <= 0)
+        {
             struct node* temp = curr;
             curr = curr->next;
             free(temp);
             head = curr;
         }
-        else{   
+        else
+        {   
             //clears old obstacles
             clear_obstacle_helper(curr, curr->data.x_speed + 7);//curr->data.x_speed);
             curr->data.x +=  curr->data.x_speed;
@@ -994,44 +997,59 @@ struct node* draw_obstacle(struct node* head) {
 
 /*//////////////////////////////////////////////////////////////    VGA DRAWING   /////////////////////////////////////////////////////////*/
 
-//Iterates through the obstacle sizes and draws them, uses an offset to full clear old drawings
+
 void draw_obstacle_helper(struct node* curr, int offset)
 {
-    int i = curr->data.x - offset;
-    int j = curr->data.y;
+    //Gets current obstacle
+    struct Obstacle obs = curr->data;
+    int i = obs.x - offset;
+    int j = obs.y;
 
-    for (int k = 0 ; k < 75 * 45 * 2 - 1; k+= 2) {
+    //Iterates through bitmap
+    for (int k = 0 ; k < obs.width * obs.height * 2 - 1; k += 2) 
+    {
         int red = ((Shark_map[k + 1] & 0xF8) >> 3) << 11;
         int green  = (((Shark_map[k] & 0xE0) >> 5)) | ((Shark_map[k+1] & 0x7) << 3) ;		                
         int blue = (Shark_map[k] & 0x1f);
-            
+        
+        //Converts bitmap to RGB
         short int p = red | ( (green << 5) | blue);
 
+        //Checks if onscreen
         if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
         {
-            if (!(Shark_map[k] == 0x00 && Shark_map[k+1] == 0x00)){
-                plot_pixel( 0 + i, j, p);
+            //Checks if the color isnt already the same
+            if (!(Shark_map[k] == 0x00 && Shark_map[k+1] == 0x00))
+            {
+                plot_pixel(i, j, p);
             }
         }
-                
-        i+=1;
-
-        if (i == curr->data.x + curr->data.width + offset) {
-            i = curr->data.x - offset;
-            j+=1;
+        //Iterates through obstacle size        
+        i++;
+        if (i == obs.x + obs.width + offset) 
+        {
+            i = obs.x - offset;
+            j++;
         }
 
-        if (j >= curr->data.y + curr->data.height){
+        if (j >= obs.y + obs.height)
+        {
+            //Done
             return;
         }
     }
 }
 
-void clear_obstacle_helper(struct node* curr, int offset){
-    int i = curr->data.x;
-    int j = curr->data.y;
+void clear_obstacle_helper(struct node* curr, int offset)
+{
+    //Gets obstacle
+    struct Obstacle obs = curr->data;
+    int i = obs.x;
+    int j = obs.y;
 
-    for (int k = ((320 * j + i) * 2); k < (320 * 240 * 2 - 1); k+= 2) {
+    //Iterate through backgound bitmap (320x240)
+    for (int k = ((320 * j + i) * 2); k < (320 * 240 * 2 - 1); k+= 2)
+    {
         int red = ((OceanBG_map[k + 1] & 0xF8) >> 3) << 11;
         int green  = (((OceanBG_map[k] & 0xE0) >> 5)) | ((OceanBG_map[k+1] & 0x7) << 3) ;		                
         int blue = (OceanBG_map[k] & 0x1f);			
@@ -1041,26 +1059,28 @@ void clear_obstacle_helper(struct node* curr, int offset){
         if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
         {
             short int color = return_color(i,j);
-            if(color != p){
-                plot_pixel( 0 + i, j, p);
+            //If the color is not what is expected, change it
+            if(color != p)
+            {
+                plot_pixel(i, j, p);
             }
         }
-                
-        i+=1;
 
-        if (i == curr->data.x + curr->data.width + offset) {
-            i = curr->data.x;
-            j+=1;
+        //Increment pixel buffer position        
+        i++;
+        if (i == obs.x + obs.width + offset + 1) 
+        {
+            i = obs.x;
+            j++;
             k = ((320*j + i)*2 - 2);
         }
 
-        if (j >= curr->data.y + curr->data.height){
+        if (j >= obs.y + obs.height){
             return;
         }
     }
 }
 
-//Print text on the Screen
 void printTextOnScreen(int x, int y, char *scorePtr){
     /* assume that the text string fits on one line */
     int offset = (y << 7) + x;
@@ -1073,32 +1093,35 @@ void printTextOnScreen(int x, int y, char *scorePtr){
     }
 }
 
-//Draws player
-void draw_player(int x, int y, int x_size, int y_size, int offset){
-    //draws a square for now needs to be updated to draw an actual player
+void draw_player(int x, int y, int x_size, int y_size, int offset)
+{
     int i = x - offset;
     int j = y;
 
-    for (int k = 0 ; k < 75 * 45 * 2 - 1; k+= 2) {
+    //Iterates through character bitmap
+    for (int k = 0 ; k < x_size * y_size * 2 - 1; k+= 2) 
+    {
         int red = ((Character_map[k + 1] & 0xF8) >> 3) << 11;
         int green  = (((Character_map[k] & 0xE0) >> 5)) | ((Character_map[k+1] & 0x7) << 3) ;		                
         int blue = (Character_map[k] & 0x1f);
             
         short int p = red | ( (green << 5) | blue);
 
+        //Checks if onscreen
         if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX && Character_map[k] != 0x00)
         {
-            plot_pixel( 0 + i, j, p);
+            plot_pixel(i, j, p);
         }
                 
-        i+=1;
-
-        if (i == x + x_size + offset) {
+        i++;
+        if (i == x + x_size + offset)
+        {
             i = x - offset;
-            j+=1;
+            j++;
         }
 
-        if (j == y + y_size){
+        if (j == y + y_size)
+        {
             return;
         }
     }
@@ -1108,7 +1131,9 @@ void clear_player(int x, int y, int x_size, int y_size, int offset){
     int i = x - offset;
     int j = y;
 
-    for (int k = ((320 * j + i) * 2); k < (320 * 240 * 2 - 1); k+= 2) {
+    //Iterates through bitmap of background (320x240)
+    for (int k = ((320 * j + i) * 2); k < (320 * 240 * 2 - 1); k+= 2) 
+    {
         int red = ((OceanBG_map[k + 1] & 0xF8) >> 3) << 11;
         int green  = (((OceanBG_map[k] & 0xE0) >> 5)) | ((OceanBG_map[k+1] & 0x7) << 3) ;		                
         int blue = (OceanBG_map[k] & 0x1f);			
@@ -1118,59 +1143,70 @@ void clear_player(int x, int y, int x_size, int y_size, int offset){
         if(i <= VGA_X_MAX && i >= VGA_X_MIN && j >= VGA_Y_MIN  && j <= VGA_Y_MAX)
         {
             short int color = return_color(i,j);
-            if(color != p){
+            //If color is not what is expected, update the pixel
+            if(color != p)
+            {
                 plot_pixel( 0 + i, j, p);
             }
         }
                 
-        i+=1;
-        
-        if (i == x + x_size + offset) {
+        i++;
+        if (i == x + x_size + offset)
+        {
             i = x - offset;
-            j+=1;
+            j++;
             k = ((320*j + i)*2 - 2);
         }
 
-        if (j == y + y_size){
+        if (j == y + y_size)
+        {
             return;
         }
     } 
 }
 
 //clears screen to background
-void clear_screen(){
+void clear_screen()
+{
     int i = 0, j = 0;	
-	for (int k = 0 ; k < 320 * 240 * 2 - 1; k+= 2) {
+    //draws background bitmap (320x240)
+	for (int k = 0 ; k < 320 * 240 * 2 - 1; k+= 2)
+    {
         int red = ((OceanBG_map[k + 1] & 0xF8) >> 3) << 11;
         int green  = (((OceanBG_map[k] & 0xE0) >> 5)) | ((OceanBG_map[k+1] & 0x7) << 3) ;		                
         int blue = (OceanBG_map[k] & 0x1f);			
                 
 		short int p = red | ( (green << 5) | blue);
 		
-		plot_pixel( 0 + i, j, p);
+		plot_pixel(i, j, p);
 		
-		i+=1;
+		i++;
 
-		if (i == 320) {
+		if (i == 320)
+        {
 			i = 0;
-			j+=1;
+			j++;
 		}
 	}
 }
 
 //plots pixels on VGA
-void plot_pixel(int x, int y, short int line_color){
+void plot_pixel(int x, int y, short int line_color)
+{
     *(short int *)(pixel_buffer_start + (y << 10) + (x << 1)) = line_color;
 }
 
-short int return_color(int x, int y){
+short int return_color(int x, int y)
+{
     short int color = 0;
     return color = *(short int *)(pixel_buffer_start + (y << 10) + (x << 1));
 }
 
-void draw_game_over_screen(){
+void draw_game_over_screen()
+{
     int i = 0, j = 0;	
-	for (int k = 0 ; k < 320 * 240 * 2 - 1; k+= 2) {
+	for (int k = 0 ; k < 320 * 240 * 2 - 1; k+= 2)
+    {
         int red = ((Loss_BG_map[k + 1] & 0xF8) >> 3) << 11;
         int green  = (((Loss_BG_map[k] & 0xE0) >> 5)) | ((Loss_BG_map[k+1] & 0x7) << 3) ;		                
         int blue = (Loss_BG_map[k] & 0x1f);			
@@ -1181,7 +1217,8 @@ void draw_game_over_screen(){
 		
 		i+=1;
 
-		if (i == 320) {
+		if (i == 320) 
+        {
 			i = 0;
 			j+=1;
 		}
@@ -1189,14 +1226,16 @@ void draw_game_over_screen(){
 }
 
 //Waits for buffers to sync before switching
-void wait_for_vsync(){
+void wait_for_vsync()
+{
     volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
 
     volatile int * status =(int *)0xFF20302C;
 
     *pixel_ctrl_ptr = 1;
 
-    while((*status &0x1) != 0){
+    while((*status &0x1) != 0)
+    {
             //do nothing
     }
     return;
