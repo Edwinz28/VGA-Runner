@@ -821,20 +821,18 @@ bool collision(struct Player player, struct node* head)
             curr = curr->next;
             continue;
         }
-        if(player.x + player.x_size >= obs.x && player.y >= obs.y && player.y <= obs.y + obs.height - Y_OFFSET)
+        else if(obs.x + obs.width < player.x - X_OFFSET)
         {
-            printf("Hit something 1 \n");
+            curr = curr->next;
+            continue;
+        }
+        else if(player.x + player.x_size >= obs.x && player.y >= obs.y && player.y <= obs.y + obs.height - Y_OFFSET)
+        {
             return true;
         }
         else if(player.x + player.x_size >= obs.x && obs.y >= player.y && obs.y <= player.y + player.y_size - Y_OFFSET)
         {
-            printf("Hit something 2 \n");
             return true;
-        }
-        else if(player.y <= obs.y + obs.height && player.x + player.x_size >= obs.x && player.x + player.x_size <= obs.x + obs.width)
-        {
-            printf("Hit something 3 \n");
-            //return true;
         }
         curr = curr->next;
     }
